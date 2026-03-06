@@ -231,6 +231,7 @@ def chart_line(df: pd.DataFrame, x: str, y: str, title: str, kind: str = "count"
     return fig
 
 
+
 def render_kpis(data):
     dash = data["dashboard"].copy()
     periodic = data["periodic"].copy()
@@ -255,8 +256,7 @@ def render_kpis(data):
         top10_count = 0
 
     if len(retention):
-        last = retention.iloc[-1]
-        ret_text = pct(last["Retentie_pct"])
+        ret_text = pct(float(retention.iloc[-1]["Retentie_pct"]))
         ret_sub = "gedoneerd in 2025 en 2026"
     else:
         ret_text = "-"
@@ -289,16 +289,14 @@ def render_kpis(data):
         kpi_card("Laatste jaar-op-jaar retentie", ret_text, ret_sub)
     with c7:
         note = ""
-        uitleg = "* gebaseerd op laatste donatiejaar 2025. Donateurs kunnen in 2026 nog opnieuw doneren waardoor dit aantal kan wijzigen."
         if impact_year is not None:
             note = f"Laatst gedoneerd in {impact_year}<br>({eur(impact_amount)})"
         kpi_card("Uitstroomcohort met grootste impact", f"{i0(impact_count)}*", note)
 
-st.markdown(
-"<span style='font-size:12px;color:#666'>* gebaseerd op laatste donatiejaar 2025. Donateurs kunnen in 2026 nog opnieuw doneren waardoor dit aantal kan wijzigen.</span>",
-unsafe_allow_html=True
-)
-
+    st.markdown(
+        "<div style='font-size:12px;color:#666;margin-top:6px'>* gebaseerd op laatste donatiejaar 2025. Donateurs kunnen in 2026 nog opnieuw doneren waardoor dit aantal kan wijzigen.</div>",
+        unsafe_allow_html=True
+    )
 
 
 def render_donor_health(data):
