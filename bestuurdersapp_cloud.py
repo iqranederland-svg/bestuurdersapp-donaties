@@ -232,7 +232,7 @@ def render_kpis(data):
     if len(retention):
         last = retention.iloc[-1]
         ret_text = pct(last["Retentie_pct"])
-        ret_sub = f'Overgang {int(last["Van_jaar"])} → {int(last["Naar_jaar"])}'
+        ret_sub = "gedoneerd in 2025 en 2026"
     else:
         ret_text = "-"
         ret_sub = ""
