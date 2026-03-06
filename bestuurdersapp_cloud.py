@@ -5,6 +5,31 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import streamlit as st
 
+import streamlit as st
+
+APP_PASSWORD = "IqraDashboard2026"
+
+def check_password():
+    if "authenticated" not in st.session_state:
+        st.session_state.authenticated = False
+
+    if st.session_state.authenticated:
+        return True
+
+    st.title("Bestuurdersomgeving")
+    password = st.text_input("Voer het wachtwoord in", type="password")
+
+    if password == APP_PASSWORD:
+        st.session_state.authenticated = True
+        st.rerun()
+    elif password != "":
+        st.error("Onjuist wachtwoord")
+
+    st.stop()
+
+check_password()
+
+
 st.set_page_config(page_title="Donateur Intelligence Platform", layout="wide")
 
 OUTPUT_DIR = Path("outputs")
