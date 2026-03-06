@@ -291,7 +291,13 @@ def render_kpis(data):
         note = ""
         if impact_year is not None:
             note = f"Laatst gedoneerd in {impact_year}<br>({eur(impact_amount)})"
-        kpi_card("Uitstroomcohort met grootste impact", i0(impact_count), note)
+        kpi_card("Uitstroomcohort met grootste impact", f"{i0(impact_count)}*", note)
+
+st.markdown(
+"<span style='font-size:12px;color:#666'>* gebaseerd op laatste donatiejaar 2025. Donateurs kunnen in 2026 nog opnieuw doneren waardoor dit aantal kan wijzigen.</span>",
+unsafe_allow_html=True
+)
+
 
 
 def render_donor_health(data):
