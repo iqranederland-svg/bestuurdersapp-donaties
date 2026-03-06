@@ -549,10 +549,7 @@ def main():
         unsafe_allow_html=True,
     )
 
-    c1, c2 = st.columns(2)
-    c1.metric("Laatste PDF", pdf.name if pdf else "Nog geen rapport")
-    c2.metric("Publieke dataset", excel.name if excel else "Nog geen analyse")
-
+    
     data = load_data()
     if data is None:
         st.warning("Nog geen publieke dataset gevonden.")
