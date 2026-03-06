@@ -265,7 +265,7 @@ def render_kpis(data):
     with c7:
         note = ""
         if impact_year is not None:
-            note = f"Laatst gedoneerd in {impact_year} • totaal {eur(impact_amount)}"
+            note = f"Laatst gedoneerd in {impact_year}<br>totaal {eur(impact_amount)}"
         kpi_card("Uitstroomcohort met grootste impact", i0(impact_count), note)
 
 
