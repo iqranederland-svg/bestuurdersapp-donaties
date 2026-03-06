@@ -248,13 +248,13 @@ def render_kpis(data):
 
     c1, c2, c3, c4 = st.columns(4)
     with c1:
-        kpi_card("Totale donaties", eur(total_all))
+        kpi_card("Totale donaties", eur(total_all), "2023 – 2026")
     with c2:
-        kpi_card("Totale transacties", i0(total_tx))
+        kpi_card("Totale transacties", i0(total_tx), "2023 – 2026")
     with c3:
-        kpi_card("Aantal donateurs", i0(donor_count))
+        kpi_card("Aantal donateurs", i0(donor_count), "2023 – 2026")
     with c4:
-        kpi_card("Dragers donaties", eur(dragers_total))
+        kpi_card("Dragers donaties", eur(dragers_total), "2023 – 2026")
 
     st.markdown("")
     c5, c6, c7 = st.columns(3)
