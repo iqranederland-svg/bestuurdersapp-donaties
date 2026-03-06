@@ -289,6 +289,7 @@ def render_kpis(data):
         kpi_card("Laatste jaar-op-jaar retentie", ret_text, ret_sub)
     with c7:
         note = ""
+        uitleg = "* gebaseerd op laatste donatiejaar 2025. Donateurs kunnen in 2026 nog opnieuw doneren waardoor dit aantal kan wijzigen."
         if impact_year is not None:
             note = f"Laatst gedoneerd in {impact_year}<br>({eur(impact_amount)})"
         kpi_card("Uitstroomcohort met grootste impact", f"{i0(impact_count)}*", note)
