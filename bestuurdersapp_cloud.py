@@ -1,4 +1,5 @@
 from pathlib import Path
+import json
 import subprocess
 
 import matplotlib.pyplot as plt
@@ -100,6 +101,16 @@ def fmt_year_cols(df: pd.DataFrame, cols: list[str]) -> pd.DataFrame:
             out[c] = out[c].apply(yearstr)
     return out
 
+
+
+def load_current_period_meta():
+    meta_file = OUTPUT_DIR / "current_period.json"
+    if meta_file.exists():
+        try:
+            return json.loads(meta_file.read_text(encoding="utf-8"))
+        except Exception:
+            return {}
+    return {}
 
 def load_data():
     xlsx = newest("donateur_intelligence_v5_*.xlsx")
@@ -504,6 +515,72 @@ def render_retention_tab(data):
     st.dataframe(lifecycle_table, use_container_width=True, hide_index=True)
 
 
+
+def render_financial_tab(data):
+    section_header("Financieel overzicht", "Inkomsten, uitgaven, netto resultaat en contant in kas")
+
+    tx = data["transactions"].copy()
+    meta = load_current_period_meta()
+    contant_kas = float(meta.get("contant_kas", 0) or 0)
+
+    if "Datum" in tx.columns:
+        try:
+            tx["Datum"] = pd.to_datetime(tx["Datum"], errors="coerce")
+            tx["Jaar"] = tx["Datum"].dt.year
+        except Exception:
+            pass
+
+    inkomsten = float(tx.loc[tx["Bedrag"] > 0, "Bedrag"].sum()) if "Bedrag" in tx.columns else 0.0
+    uitgaven = float(abs(tx.loc[tx["Bedrag"] < 0, "Bedrag"].sum())) if "Bedrag" in tx.columns else 0.0
+    netto_resultaat = inkomsten - uitgaven
+    netto_incl_kas = netto_resultaat + contant_kas
+
+    c1, c2, c3, c4, c5 = st.columns(5)
+    with c1:
+        kpi_card("Totale inkomsten", eur(inkomsten), "(gekozen periode)")
+    with c2:
+        kpi_card("Totale uitgaven", eur(uitgaven), "(gekozen periode)")
+    with c3:
+        kpi_card("Netto resultaat", eur(netto_resultaat), "(gekozen periode)")
+    with c4:
+        kpi_card("Contant in kas", eur(contant_kas), "(handmatig ingevoerd)")
+    with c5:
+        kpi_card("Netto resultaat incl. kas", eur(netto_incl_kas), "(gekozen periode)")
+
+    dash = data["dashboard"].copy().sort_values("Jaar")
+    if len(dash):
+        fin = dash[["Jaar", "Periodieke_donaties", "Directe_bankdonaties", "Belgische_donaties", "Anonieme_donaties", "Totale_inkomsten"]].copy()
+        fin["Eenmalige donaties"] = fin["Directe_bankdonaties"] + fin["Belgische_donaties"]
+        fin["Overige inkomsten"] = fin["Anonieme_donaties"]
+        fin = fin.rename(columns={
+            "Periodieke_donaties": "Periodieke donaties",
+            "Totale_inkomsten": "Totale inkomsten",
+        })
+        fin = fin[["Jaar", "Periodieke donaties", "Eenmalige donaties", "Overige inkomsten", "Totale inkomsten"]]
+        fin = fmt_year_cols(fin, ["Jaar"])
+        fin = fmt_money_cols(fin, ["Periodieke donaties", "Eenmalige donaties", "Overige inkomsten", "Totale inkomsten"])
+
+        section_header("Inkomstenoverzicht", "Uitsplitsing van inkomsten binnen de gekozen rapportageperiode")
+        st.dataframe(fin, use_container_width=True, hide_index=True)
+
+    if "Jaar" in tx.columns and "Bedrag" in tx.columns:
+        yr = tx.copy()
+        jaar_tabel = (
+            yr.groupby("Jaar", dropna=True)["Bedrag"]
+            .agg(
+                Inkomsten=lambda s: float(s[s > 0].sum()),
+                Uitgaven=lambda s: float(abs(s[s < 0].sum())),
+            )
+            .reset_index()
+        )
+        if len(jaar_tabel):
+            jaar_tabel["Netto resultaat"] = jaar_tabel["Inkomsten"] - jaar_tabel["Uitgaven"]
+            jaar_tabel = fmt_year_cols(jaar_tabel, ["Jaar"])
+            jaar_tabel = fmt_money_cols(jaar_tabel, ["Inkomsten", "Uitgaven", "Netto resultaat"])
+            section_header("Jaaroverzicht resultaat", "Overzicht van inkomsten, uitgaven en netto resultaat per jaar")
+            st.dataframe(jaar_tabel, use_container_width=True, hide_index=True)
+
+
 def render_generate_tab():
     section_header("Nieuwe rapportage genereren", "Upload een nieuw CSV bankbestand en laat de rapportage opnieuw opbouwen")
     uploaded_file = st.file_uploader("Upload nieuw CSV bankbestand", type=["csv"])
@@ -560,7 +637,7 @@ def main():
         st.warning("Nog geen publieke dataset gevonden.")
         st.stop()
 
-    tabs = st.tabs(["Dashboard", "Donateursbasis", "Retentie & uitstroom", "Rapport genereren", "Downloads"])
+    tabs = st.tabs(["Dashboard", "Donateursbasis", "Retentie & uitstroom", "Financieel overzicht", "Rapport genereren", "Downloads"])
     with tabs[0]:
         render_dashboard_tab(data)
     with tabs[1]:
