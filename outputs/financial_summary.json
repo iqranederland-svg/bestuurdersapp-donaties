@@ -9,12 +9,12 @@
     "inkomsten": 763972.9099999999,
     "uitgaven": 18317.780000000006,
     "netto_resultaat": 745655.1299999999,
-    "contant_kas": 0.0,
-    "netto_resultaat_incl_kas": 745655.1299999999,
-    "periodieke_donaties": 121913.08,
-    "eenmalige_donaties": 642059.8300000001,
+    "contant_kas": 150000.0,
+    "netto_resultaat_incl_kas": 895655.1299999999,
+    "periodieke_donaties": 121913.07999999999,
+    "eenmalige_donaties": 642059.83,
     "overige_inkomsten": 0.0,
-    "totale_donaties": 763972.91
+    "totale_donaties": 763972.9099999999
   },
   "yearly": [
     {
@@ -23,9 +23,8 @@
       "Uitgaven": 7318.860000000001,
       "Netto resultaat": 130463.08,
       "Periodieke donaties": 18951.46,
-      "Eenmalige donaties": 118830.48000000001,
-      "Overige inkomsten": 0.0,
-      "Donatie_inkomsten": 137781.94
+      "Eenmalige donaties": 118830.48,
+      "Overige inkomsten": 0.0
     },
     {
       "Jaar": 2024,
@@ -34,8 +33,7 @@
       "Netto resultaat": 184114.21,
       "Periodieke donaties": 34192.21,
       "Eenmalige donaties": 154255.79,
-      "Overige inkomsten": 0.0,
-      "Donatie_inkomsten": 188448.0
+      "Overige inkomsten": 0.0
     },
     {
       "Jaar": 2025,
@@ -44,8 +42,7 @@
       "Netto resultaat": 319834.47000000003,
       "Periodieke donaties": 57190.49,
       "Eenmalige donaties": 269111.59,
-      "Overige inkomsten": 0.0,
-      "Donatie_inkomsten": 326302.08
+      "Overige inkomsten": 0.0
     },
     {
       "Jaar": 2026,
@@ -54,8 +51,7 @@
       "Netto resultaat": 111243.36999999998,
       "Periodieke donaties": 11578.92,
       "Eenmalige donaties": 99861.97,
-      "Overige inkomsten": 0.0,
-      "Donatie_inkomsten": 111440.89
+      "Overige inkomsten": 0.0
     }
   ]
 }
