@@ -1,37 +1,61 @@
 {
-  "from_year": 2023,
-  "from_month": 1,
-  "to_year": 2026,
-  "to_month": 3,
-  "inkomsten": 222376.19,
-  "uitgaven": 5651.360000000001,
-  "netto_resultaat": 216724.83000000002,
+  "period_key": "2023_01_tot_2026_03",
+  "period_label": "januari 2023 t/m 07-03-2026",
+  "start_date": "2023-01-01",
+  "end_date": "2026-03-07",
+  "status": "voorlopig",
   "rows": 6914,
-  "period_name": "2023_01_tot_2026_03",
+  "totals": {
+    "inkomsten": 222376.19,
+    "uitgaven": 5651.360000000001,
+    "netto_resultaat": 216724.83000000002,
+    "contant_kas": 150000.0,
+    "netto_resultaat_incl_kas": 366724.83,
+    "periodieke_donaties": 72061.31,
+    "eenmalige_donaties": 150314.88,
+    "overige_inkomsten": 0.0,
+    "totale_donaties": 222376.19
+  },
   "yearly": [
     {
-      "Jaar_tmp": 2023,
-      "inkomsten": 20987.38,
-      "uitgaven": 4284.929999999999,
-      "netto_resultaat": 16702.45
+      "Jaar": 2023,
+      "Inkomsten": 20987.38,
+      "Uitgaven": 4284.929999999999,
+      "Netto resultaat": 16702.45,
+      "Periodieke donaties": 12354.15,
+      "Eenmalige donaties": 8633.230000000001,
+      "Overige inkomsten": 0.0,
+      "Donatie_inkomsten": 20987.38
     },
     {
-      "Jaar_tmp": 2024,
-      "inkomsten": 120991.79000000001,
-      "uitgaven": 1106.8799999999999,
-      "netto_resultaat": 119884.91
+      "Jaar": 2024,
+      "Inkomsten": 120991.79000000001,
+      "Uitgaven": 1106.8799999999999,
+      "Netto resultaat": 119884.91,
+      "Periodieke donaties": 22003.47,
+      "Eenmalige donaties": 98988.31999999999,
+      "Overige inkomsten": 1.4551915228366852e-11,
+      "Donatie_inkomsten": 120991.79
     },
     {
-      "Jaar_tmp": 2025,
-      "inkomsten": 59987.82000000001,
-      "uitgaven": 259.55,
-      "netto_resultaat": 59728.270000000004
+      "Jaar": 2025,
+      "Inkomsten": 59987.82000000001,
+      "Uitgaven": 259.55,
+      "Netto resultaat": 59728.270000000004,
+      "Periodieke donaties": 36486.91,
+      "Eenmalige donaties": 23500.909999999996,
+      "Overige inkomsten": 7.275957614183426e-12,
+      "Donatie_inkomsten": 59987.82
     },
     {
-      "Jaar_tmp": 2026,
-      "inkomsten": 20409.2,
-      "uitgaven": 0.0,
-      "netto_resultaat": 20409.2
+      "Jaar": 2026,
+      "Inkomsten": 20409.2,
+      "Uitgaven": 0.0,
+      "Netto resultaat": 20409.2,
+      "Periodieke donaties": 1216.78,
+      "Eenmalige donaties": 19192.420000000002,
+      "Overige inkomsten": 0.0,
+      "Donatie_inkomsten": 20409.2
     }
   ]
 }
