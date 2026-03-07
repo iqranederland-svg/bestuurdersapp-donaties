@@ -1103,19 +1103,44 @@ def render_dashboard_tab(data):
             unsafe_allow_html=True,
         )
 
-    section_header("Progressie", "Ontwikkeling van bankinkomsten en inkomstenmix • contant niet meegenomen")
-    g1, g2 = st.columns(2)
+    section_header("Progressie", "Ontwikkeling van inkomsten en donateurs • contant niet meegenomen")
+
+    g1, g2, g3 = st.columns(3)
 
     yearly_df = pd.DataFrame(yearly) if yearly else pd.DataFrame()
+
     if len(yearly_df):
         if "Jaar" in yearly_df.columns and "Inkomsten" in yearly_df.columns:
             with g1:
-                st.pyplot(chart_bar_custom(yearly_df, "Jaar", "Inkomsten", "Bankinkomsten per jaar", kind="eur"), use_container_width=True)
+                st.pyplot(
+                    chart_bar_custom(
+                        yearly_df,
+                        "Jaar",
+                        "Inkomsten",
+                        "Bankinkomsten per jaar",
+                        kind="eur",
+                    ),
+                    use_container_width=True,
+                )
 
         mix_fig = chart_grouped_income_mix(yearly)
         if mix_fig is not None:
             with g2:
                 st.pyplot(mix_fig, use_container_width=True)
+
+    donor_year_df = dash[["Jaar", "Unieke_bankdonateurs"]].copy() if "Unieke_bankdonateurs" in dash.columns else None
+
+    if donor_year_df is not None and len(donor_year_df):
+        with g3:
+            st.pyplot(
+                chart_bar_custom(
+                    donor_year_df,
+                    "Jaar",
+                    "Unieke_bankdonateurs",
+                    "Aantal unieke donateurs per jaar",
+                ),
+                use_container_width=True,
+            )
 
 
 
@@ -1294,19 +1319,44 @@ def render_dashboard_tab(data):
             unsafe_allow_html=True,
         )
 
-    section_header("Progressie", "Ontwikkeling van bankinkomsten en inkomstenmix • contant niet meegenomen")
-    g1, g2 = st.columns(2)
+    section_header("Progressie", "Ontwikkeling van inkomsten en donateurs • contant niet meegenomen")
+
+    g1, g2, g3 = st.columns(3)
 
     yearly_df = pd.DataFrame(yearly) if yearly else pd.DataFrame()
+
     if len(yearly_df):
         if "Jaar" in yearly_df.columns and "Inkomsten" in yearly_df.columns:
             with g1:
-                st.pyplot(chart_bar_custom(yearly_df, "Jaar", "Inkomsten", "Bankinkomsten per jaar", kind="eur"), use_container_width=True)
+                st.pyplot(
+                    chart_bar_custom(
+                        yearly_df,
+                        "Jaar",
+                        "Inkomsten",
+                        "Bankinkomsten per jaar",
+                        kind="eur",
+                    ),
+                    use_container_width=True,
+                )
 
         mix_fig = chart_grouped_income_mix(yearly)
         if mix_fig is not None:
             with g2:
                 st.pyplot(mix_fig, use_container_width=True)
+
+    donor_year_df = dash[["Jaar", "Unieke_bankdonateurs"]].copy() if "Unieke_bankdonateurs" in dash.columns else None
+
+    if donor_year_df is not None and len(donor_year_df):
+        with g3:
+            st.pyplot(
+                chart_bar_custom(
+                    donor_year_df,
+                    "Jaar",
+                    "Unieke_bankdonateurs",
+                    "Aantal unieke donateurs per jaar",
+                ),
+                use_container_width=True,
+            )
 
 
 if __name__ == "__main__":
