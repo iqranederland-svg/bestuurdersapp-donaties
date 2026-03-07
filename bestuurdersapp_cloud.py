@@ -724,42 +724,48 @@ def render_financial_tab(data):
         st.info("Geen uitgaven gevonden in deze periode.")
         return
 
-    expenses = pd.DataFrame(expense_rows)
+    with st.expander("Bekijk alle uitgaven", expanded=False):
+        expenses = pd.DataFrame(expense_rows)
 
-    years = ["Alle jaren"] + sorted([int(y) for y in expenses["Jaar"].dropna().unique().tolist()]) if "Jaar" in expenses.columns else ["Alle jaren"]
-    c_filter1, c_filter2 = st.columns([1, 3])
-    with c_filter1:
-        selected_year = st.selectbox("Jaar", years, key="financial_expense_year_filter")
-    with c_filter2:
-        search_term = st.text_input("Zoek in tegenpartij / naam / omschrijving", key="financial_expense_search")
+        years = ["Alle jaren"] + sorted([int(y) for y in expenses["Jaar"].dropna().unique().tolist()]) if "Jaar" in expenses.columns else ["Alle jaren"]
+        c_filter1, c_filter2, c_filter3 = st.columns([1, 3, 1])
+        with c_filter1:
+            selected_year = st.selectbox("Jaar", years, key="financial_expense_year_filter")
+        with c_filter2:
+            search_term = st.text_input("Zoek in naam / omschrijving", key="financial_expense_search")
+        with c_filter3:
+            sort_desc = st.checkbox("Hoog naar laag", value=True, key="financial_expense_sort_desc")
 
-    if selected_year != "Alle jaren" and "Jaar" in expenses.columns:
-        expenses = expenses[expenses["Jaar"] == selected_year].copy()
+        if selected_year != "Alle jaren" and "Jaar" in expenses.columns:
+            expenses = expenses[expenses["Jaar"] == selected_year].copy()
 
-    if search_term:
-        q = str(search_term).strip().lower()
-        mask = pd.Series(False, index=expenses.index)
-        for col in ["Tegenpartij", "Naam", "Omschrijving"]:
-            if col in expenses.columns:
-                mask = mask | expenses[col].astype(str).str.lower().str.contains(q, na=False)
-        expenses = expenses[mask].copy()
+        if search_term:
+            q = str(search_term).strip().lower()
+            mask = pd.Series(False, index=expenses.index)
+            for col in ["Naam", "Omschrijving"]:
+                if col in expenses.columns:
+                    mask = mask | expenses[col].astype(str).str.lower().str.contains(q, na=False)
+            expenses = expenses[mask].copy()
 
-    show_cols = []
-    if "Datum" in expenses.columns:
-        show_cols.append("Datum")
-    if "Tegenpartij" in expenses.columns:
-        show_cols.append("Tegenpartij")
-    if "Naam" in expenses.columns:
-        show_cols.append("Naam")
-    if "Omschrijving" in expenses.columns:
-        show_cols.append("Omschrijving")
-    if "Bedrag" in expenses.columns:
-        show_cols.append("Bedrag")
+        if "Bedrag" in expenses.columns:
+            expenses["Bedrag_sort"] = pd.to_numeric(expenses["Bedrag"], errors="coerce")
+            expenses = expenses.sort_values("Bedrag_sort", ascending=not sort_desc, na_position="last")
 
-    expenses = expenses[show_cols].copy()
-    expenses = fmt_money_cols(expenses, ["Bedrag"])
+        show_cols = []
+        if "Datum" in expenses.columns:
+            show_cols.append("Datum")
+        if "Naam" in expenses.columns:
+            show_cols.append("Naam")
+        if "Omschrijving" in expenses.columns:
+            show_cols.append("Omschrijving")
+        if "Bedrag" in expenses.columns:
+            show_cols.append("Bedrag")
 
-    st.dataframe(expenses, use_container_width=True, hide_index=True)
+        expenses = expenses[show_cols + (["Bedrag_sort"] if "Bedrag_sort" in expenses.columns else [])].copy()
+        expenses = fmt_money_cols(expenses, ["Bedrag"])
+        expenses = expenses.drop(columns=["Bedrag_sort"], errors="ignore")
+
+        st.dataframe(expenses, use_container_width=True, hide_index=True)
 
 
 if __name__ == "__main__":
