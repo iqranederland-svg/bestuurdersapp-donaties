@@ -405,6 +405,7 @@ def render_donor_health(data):
 
 
 
+
 def render_dashboard_tab(data):
     meta = load_current_period_meta()
     fin = load_financial_summary()
@@ -463,60 +464,107 @@ def render_dashboard_tab(data):
             top10_pct = float(top10["Aandeel_inkomsten_pct"].iloc[0])
             top10_amount = float(top10["Bedrag"].iloc[0])
 
+    inkomstenmix_totaal = periodieke_donaties + eenmalige_donaties
+    periodiek_aandeel = (periodieke_donaties / inkomstenmix_totaal * 100) if inkomstenmix_totaal > 0 else 0.0
+    eenmalig_aandeel = (eenmalige_donaties / inkomstenmix_totaal * 100) if inkomstenmix_totaal > 0 else 0.0
+    kostenratio = (totale_uitgaven / totale_inkomsten * 100) if totale_inkomsten > 0 else 0.0
+    netto_incl_kas = netto_resultaat + contant_kas
+
     st.markdown(
         f"""
-        <div style="background:linear-gradient(135deg,#0B1F3A 0%,#143D6B 55%,#1F5D8B 100%);border-radius:28px;padding:30px 32px;margin-bottom:22px;color:white;box-shadow:0 18px 42px rgba(11,31,58,0.20);">
-            <div style="font-size:13px;opacity:0.80;margin-bottom:8px;letter-spacing:.02em;">Management factsheet</div>
-            <div style="font-size:40px;font-weight:800;line-height:1.05;margin-bottom:8px;">Bestuurlijk kernoverzicht</div>
-            <div style="font-size:15px;line-height:1.55;opacity:0.95;margin-bottom:18px;">Rapportageperiode: <strong>{period_text}</strong></div>
-            <div style="display:grid;grid-template-columns:1.35fr 1fr 1fr;gap:14px;">
-                <div class="hero-metric">
-                    <div class="hero-metric-label">Netto resultaat</div>
-                    <div class="hero-metric-value">{eur(netto_resultaat)}</div>
-                    <div class="hero-metric-sub">exclusief contant in kas</div>
+        <div class="executive-ribbon">
+            <div class="executive-main">
+                <div class="hero-kicker">Management factsheet</div>
+                <div class="hero-title">Bestuurlijk kernoverzicht</div>
+                <div class="hero-sub">Rapportageperiode: <strong>{period_text}</strong></div>
+                <div class="glow-band"></div>
+                <div style="display:grid;grid-template-columns:1.1fr 0.9fr;gap:14px;align-items:start;">
+                    <div class="hero-metric">
+                        <div class="hero-metric-label">Netto resultaat</div>
+                        <div class="hero-metric-value">{eur(netto_resultaat)}</div>
+                        <div class="hero-metric-sub">exclusief contant in kas</div>
+                    </div>
+                    <div style="display:grid;grid-template-rows:1fr 1fr;gap:14px;">
+                        <div class="hero-metric">
+                            <div class="hero-metric-label">Totale inkomsten</div>
+                            <div class="hero-metric-value">{eur(totale_inkomsten)}</div>
+                            <div class="hero-metric-sub">binnen de rapportageperiode</div>
+                        </div>
+                        <div class="hero-metric">
+                            <div class="hero-metric-label">Totale uitgaven</div>
+                            <div class="hero-metric-value">{eur(totale_uitgaven)}</div>
+                            <div class="hero-metric-sub">kostenratio {pct(kostenratio)}</div>
+                        </div>
+                    </div>
                 </div>
-                <div class="hero-metric">
-                    <div class="hero-metric-label">Totale inkomsten</div>
-                    <div class="hero-metric-value">{eur(totale_inkomsten)}</div>
-                    <div class="hero-metric-sub">binnen de rapportageperiode</div>
-                </div>
-                <div class="hero-metric">
-                    <div class="hero-metric-label">Totale uitgaven</div>
-                    <div class="hero-metric-value">{eur(totale_uitgaven)}</div>
-                    <div class="hero-metric-sub">binnen de rapportageperiode</div>
-                </div>
+            </div>
+            <div class="executive-side">
+                <div class="executive-side-title">Kaspositie</div>
+                <div class="executive-side-value">{eur(contant_kas)}</div>
+                <div class="executive-side-sub">Contant in kas op rapportmoment.<br>Netto resultaat incl. kas: <strong>{eur(netto_incl_kas)}</strong></div>
+            </div>
+            <div class="executive-side">
+                <div class="executive-side-title">Concentratie</div>
+                <div class="executive-side-value">{pct(top10_pct)}</div>
+                <div class="executive-side-sub">van totale donaties komt van de top 10% donateurs.<br>Omvang: <strong>{eur(top10_amount)}</strong></div>
             </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    top_left, top_right = st.columns([1.05, 0.95])
+    left, right = st.columns([1.02, 0.98])
 
-    with top_left:
+    with left:
         st.markdown('<div class="fact-card"><div class="fact-title">Inkomstenopbouw</div></div>', unsafe_allow_html=True)
         income_table = pd.DataFrame([
-            {"Categorie": "Eenmalige donaties", "Bedrag": eenmalige_donaties},
-            {"Categorie": "Periodieke donaties", "Bedrag": periodieke_donaties},
-            {"Categorie": "Overige inkomsten", "Bedrag": overige_inkomsten},
-            {"Categorie": "Totale inkomsten", "Bedrag": totale_inkomsten},
+            {"Categorie": "Eenmalige donaties", "Bedrag": eenmalige_donaties, "Aandeel": eenmalig_aandeel},
+            {"Categorie": "Periodieke donaties", "Bedrag": periodieke_donaties, "Aandeel": periodiek_aandeel},
+            {"Categorie": "Overige inkomsten", "Bedrag": overige_inkomsten, "Aandeel": 0.0 if totale_inkomsten == 0 else (overige_inkomsten / totale_inkomsten * 100)},
+            {"Categorie": "Totale inkomsten", "Bedrag": totale_inkomsten, "Aandeel": 100.0 if totale_inkomsten > 0 else 0.0},
         ])
         income_table = fmt_money_cols(income_table, ["Bedrag"])
+        income_table = fmt_pct_cols(income_table, ["Aandeel"])
         st.dataframe(income_table, use_container_width=True, hide_index=True)
 
-    with top_right:
         st.markdown(
             f"""
-            <div class="fact-card">
-                <div class="fact-title">Bestuurlijke duiding</div>
-                <div style="font-size:14px;color:#374151;line-height:1.8;">
-                    Het netto resultaat komt uit op <strong>{eur(netto_resultaat)}</strong> bij totale inkomsten van <strong>{eur(totale_inkomsten)}</strong> en uitgaven van <strong>{eur(totale_uitgaven)}</strong>.
-                    De inkomstenbasis wordt vooral gedragen door <strong>eenmalige donaties</strong>, terwijl <strong>periodieke donaties</strong> zorgen voor structurele continuïteit.
-                    De donateursbasis telt <strong>{i0(donor_count)}</strong> donateurs, waarvan <strong>{i0(active_count)}</strong> actief zijn in het meest recente jaar.
-                    De top 10% van de donateurs vertegenwoordigt <strong>{pct(top10_pct)}</strong> van de totale donaties en blijft daarmee bestuurlijk relevant om te monitoren.
-                </div>
+            <div class="summary">
+                <strong>Interpretatie inkomstenstructuur</strong><br>
+                De inkomstenbasis bestaat voor <strong>{pct(eenmalig_aandeel)}</strong> uit eenmalige donaties en voor <strong>{pct(periodiek_aandeel)}</strong> uit periodieke donaties.
+                {'Dit wijst op een relatief sterke structurele basis, maar nog met duidelijke afhankelijkheid van incidentele inkomsten.' if periodiek_aandeel >= 20 else 'De stichting is momenteel sterk afhankelijk van incidentele inkomsten; verdere groei van periodieke donaties is strategisch gewenst.'}
+                Overige inkomsten zijn {'beperkt van omvang en hebben momenteel weinig invloed op het totaal.' if overige_inkomsten < totale_inkomsten * 0.05 else 'relevant genoeg om apart te monitoren binnen het inkomstenbeleid.'}
             </div>
             """,
+            unsafe_allow_html=True,
+        )
+
+    with right:
+        st.markdown(
+            f"""
+            <div class="interpret-card">
+                <div class="interpret-title">Duiding en interpretatie</div>
+                <div class="interpret-lead">
+                    In deze rapportageperiode komt het netto resultaat uit op <strong>{eur(netto_resultaat)}</strong>. Dat betekent dat van de totale inkomsten van <strong>{eur(totale_inkomsten)}</strong>
+                    na aftrek van <strong>{eur(totale_uitgaven)}</strong> een sterke positieve netto positie resteert.
+                </div>
+                <ul class="insight-list">
+                    <li>De kostenratio bedraagt <strong>{pct(kostenratio)}</strong>. {'Dit wijst op een zeer efficiënte besteding van middelen.' if kostenratio < 10 else 'Dit vraagt om structurele monitoring van de kostenontwikkeling.'}</li>
+                    <li>De donateursbasis telt <strong>{i0(donor_count)}</strong> donateurs, waarvan <strong>{i0(active_count)}</strong> actief zijn in het meest recente jaar. {'De actieve basis oogt daarmee stevig.' if active_count > 0 and donor_count > 0 and active_count / donor_count > 0.25 else 'Er ligt ruimte om meer bestaande donateurs opnieuw te activeren.'}</li>
+                    <li>Er zijn <strong>{i0(new_count)}</strong> nieuwe donateurs in het meest recente jaar, terwijl <strong>{i0(structural_churn)}</strong> donateurs structureel zijn uitgestroomd. Dit maakt instroom én behoud tegelijk strategisch relevant.</li>
+                    <li>De top 10% van de donateurs vertegenwoordigt <strong>{pct(top10_pct)}</strong> van de totale donaties. {'De inkomsten zijn daarmee geconcentreerd in een relatief kleine groep.' if top10_pct >= 50 else 'De inkomsten zijn relatief breder verdeeld over de donateursbasis.'}</li>
+                </ul>
+            </div>
+            <div style="height:14px;"></div>
+            <div class="strategy-card">
+                <div class="strategy-title">Adviezen op basis van strategie en keuzes</div>
+                <ul class="strategy-list">
+                    <li><strong>Versterk het periodieke programma:</strong> prioriteer campagnes die eenmalige gevers omzetten naar maandelijkse donateurs om de inkomsten voorspelbaarder te maken.</li>
+                    <li><strong>Werk gericht aan behoud:</strong> focus op opvolging van nieuwe donateurs in de eerste 3 tot 6 maanden en ontwikkel een specifieke heractivatiestrategie voor uitgestroomde donateurs.</li>
+                    <li><strong>Beperk concentratierisico:</strong> behoud de topgroep, maar investeer tegelijk in verbreding van de middengroep zodat een kleiner aantal grote gevers minder bepalend wordt.</li>
+                </ul>
+            </div>
+        """,
             unsafe_allow_html=True,
         )
 
@@ -525,7 +573,7 @@ def render_dashboard_tab(data):
     with c1:
         kpi_card("Contant in kas", eur(contant_kas), "stand op rapportmoment")
     with c2:
-        kpi_card("Netto incl. kas", eur(netto_resultaat + contant_kas), period_text)
+        kpi_card("Netto incl. kas", eur(netto_incl_kas), period_text)
     with c3:
         kpi_card("Aantal donateurs", i0(donor_count), period_text)
     with c4:
@@ -536,34 +584,39 @@ def render_dashboard_tab(data):
         kpi_card("Nieuwe donateurs", i0(new_count), new_sub)
 
     st.markdown("")
-    c6, c7 = st.columns([1, 1])
+    c6, c7 = st.columns(2)
     with c6:
         kpi_card("Structureel uitgestroomd", i0(structural_churn), "minstens 1 volledig jaar inactief")
     with c7:
         kpi_card("Top 10% donateurs", eur(top10_amount), pct(top10_pct) + " van totale donaties")
 
-    section_header("Progressie")
+    section_header("Progressie en ontwikkeling")
     g1, g2, g3 = st.columns(3)
 
     yearly_df = pd.DataFrame(yearly) if yearly else pd.DataFrame()
     if len(yearly_df):
         if "Jaar" in yearly_df.columns and "Inkomsten" in yearly_df.columns:
             with g1:
+                st.markdown('<div class="chart-shell"><div class="chart-title">Trend donaties</div><div class="chart-sub">Ontwikkeling van de totale inkomsten per jaar.</div></div>', unsafe_allow_html=True)
                 st.pyplot(chart_bar_custom(yearly_df, "Jaar", "Inkomsten", "Donaties per jaar", kind="eur"), use_container_width=True)
+
         donor_year_df = dash[["Jaar", "Unieke_bankdonateurs"]].copy() if "Unieke_bankdonateurs" in dash.columns else pd.DataFrame()
         if len(donor_year_df):
             with g2:
+                st.markdown('<div class="chart-shell"><div class="chart-title">Trend donateursbasis</div><div class="chart-sub">Ontwikkeling van het aantal donateurs per jaar.</div></div>', unsafe_allow_html=True)
                 st.pyplot(chart_bar_custom(donor_year_df, "Jaar", "Unieke_bankdonateurs", "Aantal donateurs per jaar"), use_container_width=True)
-        mix_fig = chart_stack_income_mix(yearly)
+
+        mix_fig = chart_grouped_income_mix(yearly)
         if mix_fig is not None:
             with g3:
+                st.markdown('<div class="chart-shell"><div class="chart-title">Eenmalig vs periodiek</div><div class="chart-sub">Twee staven naast elkaar per jaar voor betere managementvergelijking.</div></div>', unsafe_allow_html=True)
                 st.pyplot(mix_fig, use_container_width=True)
 
     st.markdown(
         """
-        <div class="summary" style="margin-top:14px;">
-            <strong>Leeshulp voor bestuur</strong><br>
-            Kijk eerst naar het netto resultaat en de inkomstenopbouw. Bekijk daarna of de donateursbasis groeit en of de mix tussen eenmalige en periodieke donaties zich gezond ontwikkelt. Gebruik de andere tabbladen voor verdieping in retentie, uitstroom, financiële details en rapportage.
+        <div class="summary" style="margin-top:16px;">
+            <strong>Leeshulp voor management</strong><br>
+            Begin bij het netto resultaat en de kostenratio. Kijk daarna naar de grafiek met eenmalige versus periodieke donaties om te beoordelen of de inkomstenmix structureel sterker wordt. Gebruik vervolgens de donateursindicatoren om te zien of instroom, activiteit en uitstroom zich in de gewenste richting ontwikkelen.
         </div>
         """,
         unsafe_allow_html=True,
