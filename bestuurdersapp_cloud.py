@@ -103,6 +103,15 @@ def fmt_year_cols(df: pd.DataFrame, cols: list[str]) -> pd.DataFrame:
 
 
 
+def load_financial_summary():
+    fp = OUTPUT_DIR / "financial_summary.json"
+    if fp.exists():
+        try:
+            return json.loads(fp.read_text(encoding="utf-8"))
+        except Exception:
+            return {}
+    return {}
+
 def load_current_period_meta():
     meta_file = OUTPUT_DIR / "current_period.json"
     if meta_file.exists():
@@ -516,29 +525,17 @@ def render_retention_tab(data):
 
 
 
+
 def render_financial_tab(data):
     section_header("Financieel overzicht", "Inkomsten, uitgaven, netto resultaat en contant in kas")
 
-    tx = data["transactions"].copy()
     meta = load_current_period_meta()
+    fin = load_financial_summary()
+
     contant_kas = float(meta.get("contant_kas", 0) or 0)
-
-    if "Datum" in tx.columns:
-        try:
-            tx["Datum"] = pd.to_datetime(tx["Datum"], errors="coerce")
-            tx["Jaar"] = tx["Datum"].dt.year
-        except Exception:
-            pass
-
-    inkomsten = float(tx.loc[tx["Bedrag"] > 0, "Bedrag"].sum()) if "Bedrag" in tx.columns else 0.0
-
-    uitgaven = 0.0
-    if "Bedrag" in tx.columns:
-        neg = tx.loc[tx["Bedrag"] < 0, "Bedrag"]
-        if len(neg):
-            uitgaven = float(abs(neg.sum()))
-
-    netto_resultaat = inkomsten - uitgaven
+    inkomsten = float(fin.get("inkomsten", 0) or 0)
+    uitgaven = float(fin.get("uitgaven", 0) or 0)
+    netto_resultaat = float(fin.get("netto_resultaat", inkomsten - uitgaven) or 0)
     netto_incl_kas = netto_resultaat + contant_kas
 
     c1, c2, c3, c4, c5 = st.columns(5)
@@ -555,37 +552,37 @@ def render_financial_tab(data):
 
     dash = data["dashboard"].copy().sort_values("Jaar")
     if len(dash):
-        fin = dash[["Jaar", "Periodieke_donaties", "Directe_bankdonaties", "Belgische_donaties", "Anonieme_donaties", "Totale_inkomsten"]].copy()
-        fin["Eenmalige donaties"] = fin["Directe_bankdonaties"] + fin["Belgische_donaties"]
-        fin["Overige inkomsten"] = fin["Anonieme_donaties"]
-        fin = fin.rename(columns={
+        fin_tbl = dash[["Jaar", "Periodieke_donaties", "Directe_bankdonaties", "Belgische_donaties", "Anonieme_donaties", "Totale_inkomsten"]].copy()
+        fin_tbl["Eenmalige donaties"] = fin_tbl["Directe_bankdonaties"] + fin_tbl["Belgische_donaties"]
+        fin_tbl["Overige inkomsten"] = fin_tbl["Anonieme_donaties"]
+        fin_tbl = fin_tbl.rename(columns={
             "Periodieke_donaties": "Periodieke donaties",
             "Totale_inkomsten": "Totale inkomsten",
         })
-        fin = fin[["Jaar", "Periodieke donaties", "Eenmalige donaties", "Overige inkomsten", "Totale inkomsten"]]
-        fin = fmt_year_cols(fin, ["Jaar"])
-        fin = fmt_money_cols(fin, ["Periodieke donaties", "Eenmalige donaties", "Overige inkomsten", "Totale inkomsten"])
+        fin_tbl = fin_tbl[["Jaar", "Periodieke donaties", "Eenmalige donaties", "Overige inkomsten", "Totale inkomsten"]]
+        fin_tbl = fmt_year_cols(fin_tbl, ["Jaar"])
+        fin_tbl = fmt_money_cols(fin_tbl, ["Periodieke donaties", "Eenmalige donaties", "Overige inkomsten", "Totale inkomsten"])
 
         section_header("Inkomstenoverzicht", "Uitsplitsing van inkomsten binnen de gekozen rapportageperiode")
-        st.dataframe(fin, use_container_width=True, hide_index=True)
+        st.dataframe(fin_tbl, use_container_width=True, hide_index=True)
 
-    if "Jaar" in tx.columns and "Bedrag" in tx.columns:
-        yr = tx.copy()
-        jaar_tabel = (
-            yr.groupby("Jaar", dropna=True)["Bedrag"]
-            .agg(
-                Inkomsten=lambda s: float(s[s > 0].sum()),
-                Uitgaven=lambda s: float(abs(s[s < 0].sum())),
-            )
-            .reset_index()
-        )
-        if len(jaar_tabel):
-            jaar_tabel["Netto resultaat"] = jaar_tabel["Inkomsten"] - jaar_tabel["Uitgaven"]
-            jaar_tabel = fmt_year_cols(jaar_tabel, ["Jaar"])
-            jaar_tabel = fmt_money_cols(jaar_tabel, ["Inkomsten", "Uitgaven", "Netto resultaat"])
-            section_header("Jaaroverzicht resultaat", "Overzicht van inkomsten, uitgaven en netto resultaat per jaar")
-            st.dataframe(jaar_tabel, use_container_width=True, hide_index=True)
+    yearly = fin.get("yearly", [])
+    if yearly:
+        jaar_tabel = pd.DataFrame(yearly)
+        if "Jaar_tmp" in jaar_tabel.columns:
+            jaar_tabel = jaar_tabel.rename(columns={"Jaar_tmp": "Jaar"})
+        jaar_tabel = jaar_tabel.rename(columns={
+            "inkomsten": "Inkomsten",
+            "uitgaven": "Uitgaven",
+            "netto_resultaat": "Netto resultaat",
+        })
+        keep = [c for c in ["Jaar", "Inkomsten", "Uitgaven", "Netto resultaat"] if c in jaar_tabel.columns]
+        jaar_tabel = jaar_tabel[keep]
+        jaar_tabel = fmt_year_cols(jaar_tabel, ["Jaar"])
+        jaar_tabel = fmt_money_cols(jaar_tabel, ["Inkomsten", "Uitgaven", "Netto resultaat"])
 
+        section_header("Jaaroverzicht resultaat", "Overzicht van inkomsten, uitgaven en netto resultaat per jaar")
+        st.dataframe(jaar_tabel, use_container_width=True, hide_index=True)
 
 def render_generate_tab():
     section_header("Nieuwe rapportage genereren", "Upload een nieuw CSV bankbestand en laat de rapportage opnieuw opbouwen")
