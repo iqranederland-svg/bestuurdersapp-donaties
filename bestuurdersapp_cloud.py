@@ -661,5 +661,145 @@ def main():
     with tabs[5]:
         render_downloads_tab()
 
+
+# OVERRIDE_RENDER_FINANCIAL_TAB_V2
+def render_financial_tab(data):
+    meta = load_current_period_meta()
+    fin = load_financial_summary()
+
+    period_text = str(meta.get("period_label", "gekozen periode"))
+    subtitle = "Inkomsten, uitgaven, netto resultaat en contant in kas"
+    if meta.get("period_label"):
+        subtitle = subtitle + " • " + period_text
+    section_header("Financieel overzicht", subtitle)
+
+    totals = fin.get("totals", {})
+    inkomsten = float(totals.get("inkomsten", 0) or 0)
+    uitgaven = float(totals.get("uitgaven", 0) or 0)
+    netto_resultaat = float(totals.get("netto_resultaat", 0) or 0)
+    contant_kas = float(totals.get("contant_kas", meta.get("contant_kas", 0)) or 0)
+    netto_incl_kas = float(totals.get("netto_resultaat_incl_kas", netto_resultaat + contant_kas) or 0)
+
+    c1, c2, c3, c4, c5 = st.columns(5)
+    with c1:
+        kpi_card("Totale inkomsten", eur(inkomsten), period_text)
+    with c2:
+        kpi_card("Totale uitgaven", eur(uitgaven), period_text)
+    with c3:
+        kpi_card("Netto resultaat", eur(netto_resultaat), period_text)
+    with c4:
+        kpi_card("Contant in kas", eur(contant_kas), "stand op rapportmoment")
+    with c5:
+        kpi_card("Netto resultaat incl. kas", eur(netto_incl_kas), period_text)
+
+    section_header("Inkomstenoverzicht", "Onderverdeling van inkomsten binnen " + period_text)
+    income_table = pd.DataFrame([
+        {"Type": "Periodieke donaties", "Bedrag": totals.get("periodieke_donaties", 0)},
+        {"Type": "Eenmalige donaties", "Bedrag": totals.get("eenmalige_donaties", 0)},
+        {"Type": "Overige inkomsten", "Bedrag": totals.get("overige_inkomsten", 0)},
+        {"Type": "Totale inkomsten", "Bedrag": totals.get("inkomsten", 0)},
+    ])
+    income_table = fmt_money_cols(income_table, ["Bedrag"])
+    st.dataframe(income_table, use_container_width=True, hide_index=True)
+
+    yearly = fin.get("yearly", [])
+    if yearly:
+        jaar_tabel = pd.DataFrame(yearly)
+        keep = [c for c in ["Jaar", "Periodieke donaties", "Eenmalige donaties", "Overige inkomsten", "Inkomsten", "Uitgaven", "Netto resultaat"] if c in jaar_tabel.columns]
+        jaar_tabel = jaar_tabel[keep]
+        jaar_tabel = jaar_tabel.rename(columns={
+            "Inkomsten": "Totale inkomsten",
+            "Uitgaven": "Totale uitgaven",
+        })
+        jaar_tabel = fmt_year_cols(jaar_tabel, ["Jaar"])
+        jaar_tabel = fmt_money_cols(jaar_tabel, [c for c in jaar_tabel.columns if c != "Jaar"])
+        section_header("Jaaroverzicht resultaat", "Overzicht van inkomsten, uitgaven en netto resultaat per jaar binnen " + period_text)
+        st.dataframe(jaar_tabel, use_container_width=True, hide_index=True)
+
+    section_header("Uitgaven detail", "Alle uitgaven uit het bankoverzicht binnen " + period_text)
+
+    tx = data.get("transactions")
+    if tx is None or len(tx) == 0:
+        st.info("Geen transacties beschikbaar.")
+        return
+
+    exp = tx.copy()
+
+    if "Bedrag" not in exp.columns:
+        st.info("Geen bedragkolom beschikbaar.")
+        return
+
+    def parse_money_value(x):
+        s = str(x).strip()
+        s = s.replace("\u00a0", "")
+        s = s.replace("€", "")
+        s = s.replace(".", "")
+        s = s.replace(",", ".")
+        s = re.sub(r"[^\d\.\-]", "", s)
+        try:
+            return float(s)
+        except Exception:
+            return None
+
+    exp["Bedrag_num"] = exp["Bedrag"].apply(parse_money_value)
+
+    if "Datum" in exp.columns:
+        exp["Datum_parsed"] = pd.to_datetime(exp["Datum"], errors="coerce", dayfirst=True)
+    else:
+        exp["Datum_parsed"] = pd.NaT
+
+    if "Jaar" not in exp.columns:
+        exp["Jaar"] = exp["Datum_parsed"].dt.year
+
+    expenses = exp[exp["Bedrag_num"].notna() & (exp["Bedrag_num"] < 0)].copy()
+
+    if len(expenses) == 0:
+        st.info("Geen uitgaven gevonden in deze periode.")
+        return
+
+    years = ["Alle jaren"] + sorted([int(y) for y in expenses["Jaar"].dropna().unique().tolist()])
+    c_filter1, c_filter2 = st.columns([1, 3])
+    with c_filter1:
+        selected_year = st.selectbox("Jaar", years, key="financial_expense_year_filter")
+    with c_filter2:
+        search_term = st.text_input("Zoek in tegenpartij / naam / omschrijving", key="financial_expense_search")
+
+    if selected_year != "Alle jaren":
+        expenses = expenses[expenses["Jaar"] == selected_year].copy()
+
+    rename_map = {
+        "Counterparty": "Tegenpartij",
+        "Name": "Naam",
+        "Description": "Omschrijving",
+    }
+    expenses = expenses.rename(columns=rename_map)
+
+    if search_term:
+        q = str(search_term).strip().lower()
+        mask = pd.Series(False, index=expenses.index)
+        for col in ["Tegenpartij", "Naam", "Omschrijving"]:
+            if col in expenses.columns:
+                mask = mask | expenses[col].astype(str).str.lower().str.contains(q, na=False)
+        expenses = expenses[mask].copy()
+
+    expenses["Bedrag"] = expenses["Bedrag_num"].abs()
+
+    show_cols = []
+    if "Datum" in expenses.columns:
+        show_cols.append("Datum")
+    if "Tegenpartij" in expenses.columns:
+        show_cols.append("Tegenpartij")
+    if "Naam" in expenses.columns:
+        show_cols.append("Naam")
+    if "Omschrijving" in expenses.columns:
+        show_cols.append("Omschrijving")
+    show_cols.append("Bedrag")
+
+    expenses = expenses[show_cols].copy()
+    expenses = fmt_money_cols(expenses, ["Bedrag"])
+
+    st.dataframe(expenses, use_container_width=True, hide_index=True)
+
+
 if __name__ == "__main__":
     main()
