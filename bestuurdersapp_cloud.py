@@ -345,6 +345,7 @@ def render_donor_health(data):
 
 
 
+
 def render_dashboard_tab(data):
     meta = load_current_period_meta()
     fin = load_financial_summary()
@@ -406,74 +407,106 @@ def render_dashboard_tab(data):
 
     st.markdown(
         f"""
-        <div style="background:white;border:1px solid #E5E7EB;border-radius:18px;padding:22px 24px;margin-bottom:18px;box-shadow:0 4px 16px rgba(15,39,71,0.05);">
-            <div style="font-size:13px;color:#6B7280;margin-bottom:6px;">Management factsheet</div>
-            <div style="font-size:30px;font-weight:800;color:#0F2747;line-height:1.15;margin-bottom:8px;">Bestuurlijk kernoverzicht</div>
-            <div style="font-size:15px;color:#374151;line-height:1.5;margin-bottom:14px;">Rapportageperiode: <strong>{period_text}</strong></div>
-            <div style="font-size:15px;color:#374151;line-height:1.7;">
-                In deze periode bedraagt het netto resultaat <strong>{eur(netto_resultaat)}</strong> bij totale inkomsten van <strong>{eur(totale_inkomsten)}</strong>
-                en totale uitgaven van <strong>{eur(totale_uitgaven)}</strong>. De inkomsten bestaan grotendeels uit eenmalige donaties,
-                naast een structurele basis van periodieke donaties. De donateursbasis telt <strong>{i0(donor_count)}</strong> donateurs,
-                waarvan <strong>{i0(active_count)}</strong> actief zijn in het meest recente jaar van de rapportage.
+        <div style="background:linear-gradient(135deg,#0F2747 0%,#1E3A5F 100%);border-radius:24px;padding:28px 30px;margin-bottom:22px;color:white;box-shadow:0 14px 34px rgba(15,39,71,0.18);">
+            <div style="font-size:13px;opacity:0.82;margin-bottom:8px;">Management factsheet</div>
+            <div style="font-size:34px;font-weight:800;line-height:1.12;margin-bottom:8px;">Bestuurlijk kernoverzicht</div>
+            <div style="font-size:15px;line-height:1.55;opacity:0.96;margin-bottom:18px;">Rapportageperiode: <strong>{period_text}</strong></div>
+            <div style="display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:14px;align-items:stretch;">
+                <div style="background:rgba(255,255,255,0.10);border:1px solid rgba(255,255,255,0.14);border-radius:18px;padding:18px 18px 16px 18px;">
+                    <div style="font-size:12px;opacity:0.82;margin-bottom:8px;">Netto resultaat</div>
+                    <div style="font-size:34px;font-weight:800;line-height:1.0;margin-bottom:8px;">{eur(netto_resultaat)}</div>
+                    <div style="font-size:13px;opacity:0.82;">exclusief contant in kas</div>
+                </div>
+                <div style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:18px;padding:16px 18px;">
+                    <div style="font-size:12px;opacity:0.82;">Totale inkomsten</div>
+                    <div style="font-size:26px;font-weight:800;margin-top:4px;">{eur(totale_inkomsten)}</div>
+                    <div style="font-size:12px;opacity:0.75;margin-top:10px;">Totale uitgaven</div>
+                    <div style="font-size:22px;font-weight:700;margin-top:4px;">{eur(totale_uitgaven)}</div>
+                </div>
+                <div style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:18px;padding:16px 18px;">
+                    <div style="font-size:12px;opacity:0.82;">Contant in kas</div>
+                    <div style="font-size:26px;font-weight:800;margin-top:4px;">{eur(contant_kas)}</div>
+                    <div style="font-size:12px;opacity:0.75;margin-top:10px;">Netto incl. kas</div>
+                    <div style="font-size:22px;font-weight:700;margin-top:4px;">{eur(netto_resultaat + contant_kas)}</div>
+                </div>
             </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    section_header("Financiële kerncijfers")
-    f1, f2, f3, f4 = st.columns(4)
-    with f1:
-        kpi_card("Netto resultaat", eur(netto_resultaat), period_text)
-    with f2:
-        kpi_card("Totale inkomsten", eur(totale_inkomsten), period_text)
-    with f3:
-        kpi_card("Totale uitgaven", eur(totale_uitgaven), period_text)
-    with f4:
-        kpi_card("Contant in kas", eur(contant_kas), "stand op rapportmoment")
+    st.markdown(
+        """
+        <div style="display:grid;grid-template-columns:1.15fr 1fr;gap:18px;margin-bottom:18px;">
+            <div style="background:white;border:1px solid #E5E7EB;border-radius:20px;padding:20px 22px;box-shadow:0 6px 20px rgba(15,39,71,0.06);">
+                <div style="font-size:18px;font-weight:800;color:#0F2747;margin-bottom:14px;">Inkomstenopbouw</div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-    section_header("Inkomstenopbouw")
     income_table = pd.DataFrame([
-        {"Categorie": "Periodieke donaties", "Bedrag": periodieke_donaties},
         {"Categorie": "Eenmalige donaties", "Bedrag": eenmalige_donaties},
+        {"Categorie": "Periodieke donaties", "Bedrag": periodieke_donaties},
         {"Categorie": "Overige inkomsten", "Bedrag": overige_inkomsten},
         {"Categorie": "Totale inkomsten", "Bedrag": totale_inkomsten},
     ])
     income_table = fmt_money_cols(income_table, ["Bedrag"])
     st.dataframe(income_table, use_container_width=True, hide_index=True)
 
-    section_header("Donateursbasis")
-    d1, d2, d3, d4 = st.columns(4)
-    with d1:
-        kpi_card("Aantal donateurs", i0(donor_count), period_text)
-    with d2:
-        active_sub = f"actief in {current_year}" if current_year is not None else period_text
-        kpi_card("Actieve donateurs", i0(active_count), active_sub)
-    with d3:
-        new_sub = f"nieuw in {current_year}" if current_year is not None else period_text
-        kpi_card("Nieuwe donateurs", i0(new_count), new_sub)
-    with d4:
-        kpi_card("Structureel uitgestroomd", i0(structural_churn), "minstens 1 volledig jaar inactief")
-
-    section_header("Concentratie van donaties")
-    c1, c2 = st.columns([1, 2])
-    with c1:
-        kpi_card("Top 10% donateurs", eur(top10_amount), pct(top10_pct) + " van totale donaties")
-    with c2:
-        st.markdown(
-            f"""
-            <div style="background:white;border:1px solid #E5E7EB;border-radius:18px;padding:18px 20px;min-height:150px;box-shadow:0 4px 16px rgba(15,39,71,0.05);">
-                <div style="font-size:16px;font-weight:700;color:#0F2747;margin-bottom:8px;">Bestuurlijke interpretatie</div>
-                <div style="font-size:14px;color:#374151;line-height:1.7;">
-                    Het dashboard laat zien dat de stichting een sterke netto positie heeft binnen de gekozen rapportageperiode.
-                    De inkomstenbasis steunt grotendeels op eenmalige donaties, met daarnaast een structurele stroom van periodieke donaties.
-                    De donateursbasis blijft relevant om te volgen op instroom, activiteit en uitstroom, terwijl de top 10% van de donateurs
-                    een substantieel deel van de totale donaties vertegenwoordigt.
+    st.markdown(
+        f"""
+            </div>
+            <div style="background:white;border:1px solid #E5E7EB;border-radius:20px;padding:20px 22px;box-shadow:0 6px 20px rgba(15,39,71,0.06);">
+                <div style="font-size:18px;font-weight:800;color:#0F2747;margin-bottom:14px;">Donateursbasis</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div style="background:#F8FAFC;border:1px solid #E5E7EB;border-radius:16px;padding:14px 16px;">
+                        <div style="font-size:12px;color:#6B7280;">Aantal donateurs</div>
+                        <div style="font-size:28px;font-weight:800;color:#0F2747;margin-top:4px;">{i0(donor_count)}</div>
+                    </div>
+                    <div style="background:#F8FAFC;border:1px solid #E5E7EB;border-radius:16px;padding:14px 16px;">
+                        <div style="font-size:12px;color:#6B7280;">Actieve donateurs</div>
+                        <div style="font-size:28px;font-weight:800;color:#0F2747;margin-top:4px;">{i0(active_count)}</div>
+                        <div style="font-size:12px;color:#6B7280;margin-top:4px;">actief in {current_year if current_year is not None else "-"}</div>
+                    </div>
+                    <div style="background:#F8FAFC;border:1px solid #E5E7EB;border-radius:16px;padding:14px 16px;">
+                        <div style="font-size:12px;color:#6B7280;">Nieuwe donateurs</div>
+                        <div style="font-size:28px;font-weight:800;color:#0F2747;margin-top:4px;">{i0(new_count)}</div>
+                        <div style="font-size:12px;color:#6B7280;margin-top:4px;">nieuw in {current_year if current_year is not None else "-"}</div>
+                    </div>
+                    <div style="background:#F8FAFC;border:1px solid #E5E7EB;border-radius:16px;padding:14px 16px;">
+                        <div style="font-size:12px;color:#6B7280;">Structureel uitgestroomd</div>
+                        <div style="font-size:28px;font-weight:800;color:#0F2747;margin-top:4px;">{i0(structural_churn)}</div>
+                        <div style="font-size:12px;color:#6B7280;margin-top:4px;">minstens 1 jaar inactief</div>
+                    </div>
                 </div>
             </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        f"""
+        <div style="display:grid;grid-template-columns:0.95fr 1.05fr;gap:18px;">
+            <div style="background:white;border:1px solid #E5E7EB;border-radius:20px;padding:20px 22px;box-shadow:0 6px 20px rgba(15,39,71,0.06);">
+                <div style="font-size:18px;font-weight:800;color:#0F2747;margin-bottom:12px;">Concentratie van donaties</div>
+                <div style="font-size:12px;color:#6B7280;">Top 10% donateurs</div>
+                <div style="font-size:30px;font-weight:800;color:#0F2747;line-height:1.0;margin-top:6px;">{eur(top10_amount)}</div>
+                <div style="font-size:14px;color:#374151;margin-top:10px;">{pct(top10_pct)} van totale donaties</div>
+            </div>
+            <div style="background:white;border:1px solid #E5E7EB;border-radius:20px;padding:20px 22px;box-shadow:0 6px 20px rgba(15,39,71,0.06);">
+                <div style="font-size:18px;font-weight:800;color:#0F2747;margin-bottom:12px;">Bestuurlijke duiding</div>
+                <div style="font-size:14px;color:#374151;line-height:1.75;">
+                    Het netto resultaat bedraagt <strong>{eur(netto_resultaat)}</strong> bij totale inkomsten van <strong>{eur(totale_inkomsten)}</strong> en totale uitgaven van <strong>{eur(totale_uitgaven)}</strong>.
+                    De inkomsten bestaan hoofdzakelijk uit <strong>eenmalige donaties</strong>, naast een structurele basis van <strong>periodieke donaties</strong>.
+                    De donateursbasis telt <strong>{i0(donor_count)}</strong> donateurs, waarvan <strong>{i0(active_count)}</strong> actief zijn in het meest recente jaar van de rapportage.
+                    De top 10% van de donateurs vertegenwoordigt een substantieel deel van de totale donaties en blijft daarmee bestuurlijk relevant om te volgen.
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def render_donors_tab(data):
