@@ -3,35 +3,35 @@
   "from_month": 1,
   "to_year": 2026,
   "to_month": 3,
-  "inkomsten": 0.0,
-  "uitgaven": 0.0,
-  "netto_resultaat": 0.0,
+  "inkomsten": 222376.19,
+  "uitgaven": 5651.360000000001,
+  "netto_resultaat": 216724.83000000002,
   "rows": 6914,
   "period_name": "2023_01_tot_2026_03",
   "yearly": [
     {
       "Jaar_tmp": 2023,
-      "inkomsten": 0.0,
-      "uitgaven": 0.0,
-      "netto_resultaat": 0.0
+      "inkomsten": 20987.38,
+      "uitgaven": 4284.929999999999,
+      "netto_resultaat": 16702.45
     },
     {
       "Jaar_tmp": 2024,
-      "inkomsten": 0.0,
-      "uitgaven": 0.0,
-      "netto_resultaat": 0.0
+      "inkomsten": 120991.79000000001,
+      "uitgaven": 1106.8799999999999,
+      "netto_resultaat": 119884.91
     },
     {
       "Jaar_tmp": 2025,
-      "inkomsten": 0.0,
-      "uitgaven": 0.0,
-      "netto_resultaat": 0.0
+      "inkomsten": 59987.82000000001,
+      "uitgaven": 259.55,
+      "netto_resultaat": 59728.270000000004
     },
     {
       "Jaar_tmp": 2026,
-      "inkomsten": 0.0,
+      "inkomsten": 20409.2,
       "uitgaven": 0.0,
-      "netto_resultaat": 0.0
+      "netto_resultaat": 20409.2
     }
   ]
 }
