@@ -719,61 +719,22 @@ def render_financial_tab(data):
 
     section_header("Uitgaven detail", "Alle uitgaven uit het bankoverzicht binnen " + period_text)
 
-    tx = data.get("transactions")
-    if tx is None or len(tx) == 0:
-        st.info("Geen transacties beschikbaar.")
-        return
-
-    exp = tx.copy()
-
-    if "Bedrag" not in exp.columns:
-        st.info("Geen bedragkolom beschikbaar.")
-        return
-
-    def parse_money_value(x):
-        s = str(x).strip()
-        s = s.replace("\u00a0", "")
-        s = s.replace("€", "")
-        s = s.replace(".", "")
-        s = s.replace(",", ".")
-        s = re.sub(r"[^\d\.\-]", "", s)
-        try:
-            return float(s)
-        except Exception:
-            return None
-
-    exp["Bedrag_num"] = exp["Bedrag"].apply(parse_money_value)
-
-    if "Datum" in exp.columns:
-        exp["Datum_parsed"] = pd.to_datetime(exp["Datum"], errors="coerce", dayfirst=True)
-    else:
-        exp["Datum_parsed"] = pd.NaT
-
-    if "Jaar" not in exp.columns:
-        exp["Jaar"] = exp["Datum_parsed"].dt.year
-
-    expenses = exp[exp["Bedrag_num"].notna() & (exp["Bedrag_num"] < 0)].copy()
-
-    if len(expenses) == 0:
+    expense_rows = fin.get("expense_details", [])
+    if not expense_rows:
         st.info("Geen uitgaven gevonden in deze periode.")
         return
 
-    years = ["Alle jaren"] + sorted([int(y) for y in expenses["Jaar"].dropna().unique().tolist()])
+    expenses = pd.DataFrame(expense_rows)
+
+    years = ["Alle jaren"] + sorted([int(y) for y in expenses["Jaar"].dropna().unique().tolist()]) if "Jaar" in expenses.columns else ["Alle jaren"]
     c_filter1, c_filter2 = st.columns([1, 3])
     with c_filter1:
         selected_year = st.selectbox("Jaar", years, key="financial_expense_year_filter")
     with c_filter2:
         search_term = st.text_input("Zoek in tegenpartij / naam / omschrijving", key="financial_expense_search")
 
-    if selected_year != "Alle jaren":
+    if selected_year != "Alle jaren" and "Jaar" in expenses.columns:
         expenses = expenses[expenses["Jaar"] == selected_year].copy()
-
-    rename_map = {
-        "Counterparty": "Tegenpartij",
-        "Name": "Naam",
-        "Description": "Omschrijving",
-    }
-    expenses = expenses.rename(columns=rename_map)
 
     if search_term:
         q = str(search_term).strip().lower()
@@ -782,8 +743,6 @@ def render_financial_tab(data):
             if col in expenses.columns:
                 mask = mask | expenses[col].astype(str).str.lower().str.contains(q, na=False)
         expenses = expenses[mask].copy()
-
-    expenses["Bedrag"] = expenses["Bedrag_num"].abs()
 
     show_cols = []
     if "Datum" in expenses.columns:
@@ -794,7 +753,8 @@ def render_financial_tab(data):
         show_cols.append("Naam")
     if "Omschrijving" in expenses.columns:
         show_cols.append("Omschrijving")
-    show_cols.append("Bedrag")
+    if "Bedrag" in expenses.columns:
+        show_cols.append("Bedrag")
 
     expenses = expenses[show_cols].copy()
     expenses = fmt_money_cols(expenses, ["Bedrag"])
