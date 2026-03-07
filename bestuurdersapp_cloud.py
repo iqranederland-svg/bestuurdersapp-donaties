@@ -343,89 +343,117 @@ def render_donor_health(data):
         kpi_card("Structureel uitgestroomd", i0(len(churn)), f"Laatste donatie vóór {current_year - 1}")
 
 
+
 def render_dashboard_tab(data):
-    section_header("Management Dashboard", "Kernoverzicht met bedragen, donateursbasis, dragers en uitstroom")
-    render_kpis(data)
-    render_donor_health(data)
+    meta = load_current_period_meta()
+    fin = load_financial_summary()
+    period_text = str(meta.get("period_label", "gekozen periode"))
 
-    dash = data["dashboard"].copy().sort_values("Jaar")
-    closed_dash, running_dash, running_year = split_closed_running_years(dash)
-    periodic = data["periodic"].copy().sort_values("Jaar")
-    closed_periodic = periodic[periodic["Jaar"].astype(int) < running_year].copy() if running_year is not None else periodic.copy()
-    exit_df = data["exit"].copy().sort_values("Laatste actieve jaar")
+    section_header("Management Dashboard", "Belangrijkste financiële en donateurcijfers • " + period_text)
+
+    totals = fin.get("totals", {})
+    netto_resultaat = float(totals.get("netto_resultaat", 0) or 0)
+    totale_inkomsten = float(totals.get("inkomsten", 0) or 0)
+    totale_uitgaven = float(totals.get("uitgaven", 0) or 0)
+    contant_kas = float(totals.get("contant_kas", meta.get("contant_kas", 0)) or 0)
+    periodieke_donaties = float(totals.get("periodieke_donaties", 0) or 0)
+    eenmalige_donaties = float(totals.get("eenmalige_donaties", 0) or 0)
+    overige_inkomsten = float(totals.get("overige_inkomsten", 0) or 0)
+
+    donors = data["donors"].copy()
+    lifecycle = data["lifecycle"].copy()
     new_df = data["new"].copy().sort_values("Jaar")
-
-    if running_year is not None:
-        info_box(f"Het jaar {running_year} is nog niet afgerond. Grafieken vergelijken daarom primair afgesloten jaren. De stand van {running_year} wordt afzonderlijk weergegeven om vertekening te voorkomen.")
-
-    section_header("Kernvisualisaties")
-    r1c1, r1c2 = st.columns(2)
-    with r1c1:
-        st.pyplot(chart_bar(closed_dash if len(closed_dash) else dash, "Jaar", "Totale_inkomsten", "Totale donaties per afgesloten jaar", kind="eur"), use_container_width=True)
-    with r1c2:
-        st.pyplot(chart_bar(closed_dash if len(closed_dash) else dash, "Jaar", "Unieke_bankdonateurs", "Aantal donateurs per afgesloten jaar"), use_container_width=True)
-
-    r2c1, r2c2 = st.columns(2)
-    with r2c1:
-        st.pyplot(chart_bar(closed_periodic if len(closed_periodic) else periodic, "Jaar", "Bedrag", "Dragers donaties per afgesloten jaar", kind="eur"), use_container_width=True)
-    with r2c2:
-        st.pyplot(chart_bar(exit_df, "Laatste actieve jaar", "Aantal donateurs", "Uitstroom per laatste actieve jaar"), use_container_width=True)
-
-    section_header("Jaaroverzicht", "Totale donaties en hoofdgroepen per jaar")
-    year_table = dash[["Jaar", "Totale_inkomsten", "Directe_bankdonaties", "Periodieke_donaties", "Belgische_donaties", "Anonieme_donaties", "Unieke_bankdonateurs", "Totaal_transacties"]].copy()
-    year_table["Overige donaties"] = year_table["Belgische_donaties"] + year_table["Anonieme_donaties"]
-    year_table = year_table.rename(columns={
-        "Totale_inkomsten": "Totale inkomsten",
-        "Directe_bankdonaties": "Eenmalige donaties",
-        "Periodieke_donaties": "Dragers donaties",
-        "Unieke_bankdonateurs": "Unieke donateurs",
-        "Totaal_transacties": "Totaal transacties",
-    })
-    year_table = year_table[["Jaar", "Totale inkomsten", "Eenmalige donaties", "Dragers donaties", "Overige donaties", "Unieke donateurs", "Totaal transacties"]]
-    year_table = fmt_money_cols(year_table, ["Totale inkomsten", "Eenmalige donaties", "Dragers donaties", "Overige donaties"])
-    year_table = fmt_year_cols(year_table, ["Jaar"])
-    year_table = fmt_int_cols(year_table, ["Unieke donateurs", "Totaal transacties"])
-    st.dataframe(year_table, use_container_width=True, hide_index=True)
-    info_box("Overige donaties bestaan uit niet individueel herleidbare stromen, waaronder Sepay, Belgische donateurs en anonieme donateurs.")
-
-    if running_year is not None and len(running_dash):
-        section_header(f"Lopend jaar {running_year}", "Voorlopige stand van het nog niet afgesloten kalenderjaar")
-        running_table = running_dash[["Jaar", "Totale_inkomsten", "Directe_bankdonaties", "Periodieke_donaties", "Belgische_donaties", "Anonieme_donaties", "Unieke_bankdonateurs", "Totaal_transacties"]].copy()
-        running_table["Overige donaties"] = running_table["Belgische_donaties"] + running_table["Anonieme_donaties"]
-        running_table = running_table.rename(columns={
-            "Totale_inkomsten": "Totale inkomsten",
-            "Directe_bankdonaties": "Eenmalige donaties",
-            "Periodieke_donaties": "Dragers donaties",
-            "Unieke_bankdonateurs": "Unieke donateurs",
-            "Totaal_transacties": "Totaal transacties",
-        })
-        running_table = running_table[["Jaar", "Totale inkomsten", "Eenmalige donaties", "Dragers donaties", "Overige donaties", "Unieke donateurs", "Totaal transacties"]]
-        running_table = fmt_money_cols(running_table, ["Totale inkomsten", "Eenmalige donaties", "Dragers donaties", "Overige donaties"])
-        running_table = fmt_year_cols(running_table, ["Jaar"])
-        running_table = fmt_int_cols(running_table, ["Unieke donateurs", "Totaal transacties"])
-        st.dataframe(running_table, use_container_width=True, hide_index=True)
-
-    section_header("Managementsamenvatting")
-    points = []
     pareto = data["pareto"].copy()
+    exit_df = data["exit"].copy().sort_values("Laatste actieve jaar")
+    dash = data["dashboard"].copy().sort_values("Jaar")
+
+    donor_count = 0
+    hit = donors.loc[donors["KPI"] == "Unieke bankdonateurs", "Waarde"]
+    if len(hit):
+        donor_count = int(hit.iloc[0])
+
+    current_year = None
+    if len(dash):
+        current_year = int(dash["Jaar"].max())
+
+    active_count = 0
+    new_count = 0
+    structural_churn = 0
+
+    if len(lifecycle):
+        lc = lifecycle.copy()
+        if "Laatste_jaar" in lc.columns and current_year is not None:
+            lc["Laatste_jaar"] = pd.to_numeric(lc["Laatste_jaar"], errors="coerce")
+            active_count = int((lc["Laatste_jaar"] == current_year).sum())
+            structural_churn = int((lc["Laatste_jaar"] < (current_year - 1)).sum())
+        if "Eerste_jaar" in lc.columns and current_year is not None:
+            lc["Eerste_jaar"] = pd.to_numeric(lc["Eerste_jaar"], errors="coerce")
+            new_count = int((lc["Eerste_jaar"] == current_year).sum())
+
+    if len(new_df) and current_year is not None:
+        row = new_df.loc[pd.to_numeric(new_df["Jaar"], errors="coerce") == current_year]
+        if len(row) and "Nieuwe donateurs sinds start dataset" in row.columns:
+            try:
+                new_count = int(row.iloc[0]["Nieuwe donateurs sinds start dataset"])
+            except Exception:
+                pass
+
+    top10_pct = 0.0
+    top10_amount = 0.0
     if len(pareto):
-        r = pareto.loc[pareto["Segment"] == "Top 10%"].iloc[0]
-        points.append(f'De top 10% van de bankdonateurs vertegenwoordigt <strong class="nowrap">{pct(r["Aandeel_inkomsten_pct"])}</strong> van de directe bankdonaties, goed voor <strong class="nowrap">{eur(r["Bedrag"])}</strong>.')
-    if len(periodic):
-        r = periodic.iloc[-1]
-        points.append(f'In <strong class="nowrap">{int(r["Jaar"])}</strong> bedroegen de dragers donaties <strong class="nowrap">{eur(r["Bedrag"])}</strong>.')
-    if len(new_df):
-        r = new_df.iloc[-1]
-        points.append(f'In <strong class="nowrap">{int(r["Jaar"])}</strong> kwamen er <strong class="nowrap">{i0(r["Nieuwe donateurs sinds start dataset"])}</strong> nieuwe donateurs bij sinds start van de dataset.')
-    retention = data["retention"].copy().sort_values("Van_jaar")
-    if len(retention):
-        r = retention.iloc[-1]
-        points.append(f'De laatste gemeten jaar-op-jaar retentie bedraagt <strong class="nowrap">{pct(r["Retentie_pct"])}</strong> over de overgang <strong class="nowrap">{int(r["Van_jaar"])} → {int(r["Naar_jaar"])}</strong>.')
-    if len(exit_df):
-        r = exit_df.sort_values("Totaal bedrag van deze groep", ascending=False).iloc[0]
-        points.append(f'Het uitstroomcohort met grootste impact heeft laatste actieve jaar <strong class="nowrap">{int(r["Laatste actieve jaar"])}</strong> en vertegenwoordigt een historische donatiewaarde van <strong class="nowrap">{eur(r["Totaal bedrag van deze groep"])}</strong>. Door het lopende opvolgjaar moet dit voorzichtig worden geïnterpreteerd.')
-    for p in points:
-        st.markdown(f'<div class="summary">{p}</div>', unsafe_allow_html=True)
+        top10 = pareto.loc[pareto["Segment"] == "Top 10%"]
+        if len(top10):
+            top10_pct = float(top10["Aandeel_inkomsten_pct"].iloc[0])
+            top10_amount = float(top10["Bedrag"].iloc[0])
+
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        kpi_card("Netto resultaat", eur(netto_resultaat), period_text)
+    with c2:
+        kpi_card("Totale inkomsten", eur(totale_inkomsten), period_text)
+    with c3:
+        kpi_card("Totale uitgaven", eur(totale_uitgaven), period_text)
+    with c4:
+        kpi_card("Contant in kas", eur(contant_kas), "stand op rapportmoment")
+
+    st.markdown("")
+    c5, c6, c7 = st.columns(3)
+    with c5:
+        kpi_card("Periodieke donaties", eur(periodieke_donaties), period_text)
+    with c6:
+        kpi_card("Eenmalige donaties", eur(eenmalige_donaties), period_text)
+    with c7:
+        kpi_card("Overige inkomsten", eur(overige_inkomsten), period_text)
+
+    st.markdown("")
+    c8, c9, c10, c11 = st.columns(4)
+    with c8:
+        kpi_card("Aantal donateurs", i0(donor_count), period_text)
+    with c9:
+        active_sub = f"actief in {current_year}" if current_year is not None else period_text
+        kpi_card("Actieve donateurs", i0(active_count), active_sub)
+    with c10:
+        new_sub = f"nieuw in {current_year}" if current_year is not None else period_text
+        kpi_card("Nieuwe donateurs", i0(new_count), new_sub)
+    with c11:
+        churn_sub = "minstens 1 volledig jaar inactief"
+        kpi_card("Structureel uitgestroomd", i0(structural_churn), churn_sub)
+
+    st.markdown("")
+    c12, c13 = st.columns([1, 3])
+    with c12:
+        kpi_card("Top 10% donateurs", eur(top10_amount), pct(top10_pct) + " van totale donaties")
+    with c13:
+        st.markdown(
+            "<div class='summary'>"
+            "<strong>Bestuurlijke duiding</strong><br>"
+            "Deze pagina combineert de belangrijkste financiële kerncijfers met de gezondheid van de donateursbasis. "
+            "De eerste rij toont het netto resultaat en de kaspositie. De tweede rij laat zien hoe de inkomsten zijn opgebouwd. "
+            "De derde rij toont de belangrijkste indicatoren voor de ontwikkeling van de donateursbasis. "
+            "Gebruik de overige tabbladen voor verdieping in retentie, uitstroom, financiële details en rapportage."
+            "</div>",
+            unsafe_allow_html=True,
+        )
 
 
 def render_donors_tab(data):
