@@ -89,7 +89,7 @@ def fmt_pct_cols(df: pd.DataFrame, cols: list[str]) -> pd.DataFrame:
     out = df.copy()
     for c in cols:
         if c in out.columns:
-            out[c] = out[c].apply(pct)
+            out[c] = out[c].apply(lambda x: "" if pd.isna(x) else pct(x))
     return out
 
 
