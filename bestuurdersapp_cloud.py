@@ -638,17 +638,24 @@ def main():
         st.stop()
 
     tabs = st.tabs(["Dashboard", "Donateursbasis", "Retentie & uitstroom", "Financieel overzicht", "Rapport genereren", "Downloads"])
+
     with tabs[0]:
         render_dashboard_tab(data)
+
     with tabs[1]:
         render_donors_tab(data)
+
     with tabs[2]:
         render_retention_tab(data)
-    with tabs[3]:
-        render_generate_tab()
-    with tabs[4]:
-        render_downloads_tab()
 
+    with tabs[3]:
+        render_financial_tab(data)
+
+    with tabs[4]:
+        render_generate_tab()
+
+    with tabs[5]:
+        render_downloads_tab()
 
 if __name__ == "__main__":
     main()
