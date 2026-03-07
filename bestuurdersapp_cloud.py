@@ -526,17 +526,22 @@ def render_retention_tab(data):
 
 
 
-def render_financial_tab(data):
-    section_header("Financieel overzicht", "Inkomsten, uitgaven, netto resultaat en contant in kas")
 
+def render_financial_tab(data):
     meta = load_current_period_meta()
     fin = load_financial_summary()
 
-    contant_kas = float(meta.get("contant_kas", 0) or 0)
-    inkomsten = float(fin.get("inkomsten", 0) or 0)
-    uitgaven = float(fin.get("uitgaven", 0) or 0)
-    netto_resultaat = float(fin.get("netto_resultaat", inkomsten - uitgaven) or 0)
-    netto_incl_kas = netto_resultaat + contant_kas
+    subtitle = "Inkomsten, uitgaven, netto resultaat en contant in kas"
+    if meta.get("period_label"):
+        subtitle = subtitle + " • " + str(meta.get("period_label"))
+    section_header("Financieel overzicht", subtitle)
+
+    totals = fin.get("totals", {})
+    inkomsten = float(totals.get("inkomsten", 0) or 0)
+    uitgaven = float(totals.get("uitgaven", 0) or 0)
+    netto_resultaat = float(totals.get("netto_resultaat", 0) or 0)
+    contant_kas = float(totals.get("contant_kas", meta.get("contant_kas", 0)) or 0)
+    netto_incl_kas = float(totals.get("netto_resultaat_incl_kas", netto_resultaat + contant_kas) or 0)
 
     c1, c2, c3, c4, c5 = st.columns(5)
     with c1:
@@ -550,38 +555,34 @@ def render_financial_tab(data):
     with c5:
         kpi_card("Netto resultaat incl. kas", eur(netto_incl_kas), "(gekozen periode)")
 
-    dash = data["dashboard"].copy().sort_values("Jaar")
-    if len(dash):
-        fin_tbl = dash[["Jaar", "Periodieke_donaties", "Directe_bankdonaties", "Belgische_donaties", "Anonieme_donaties", "Totale_inkomsten"]].copy()
-        fin_tbl["Eenmalige donaties"] = fin_tbl["Directe_bankdonaties"] + fin_tbl["Belgische_donaties"]
-        fin_tbl["Overige inkomsten"] = fin_tbl["Anonieme_donaties"]
-        fin_tbl = fin_tbl.rename(columns={
-            "Periodieke_donaties": "Periodieke donaties",
-            "Totale_inkomsten": "Totale inkomsten",
-        })
-        fin_tbl = fin_tbl[["Jaar", "Periodieke donaties", "Eenmalige donaties", "Overige inkomsten", "Totale inkomsten"]]
-        fin_tbl = fmt_year_cols(fin_tbl, ["Jaar"])
-        fin_tbl = fmt_money_cols(fin_tbl, ["Periodieke donaties", "Eenmalige donaties", "Overige inkomsten", "Totale inkomsten"])
-
-        section_header("Inkomstenoverzicht", "Uitsplitsing van inkomsten binnen de gekozen rapportageperiode")
-        st.dataframe(fin_tbl, use_container_width=True, hide_index=True)
+    section_header("Inkomstenoverzicht", "Onderverdeling van inkomsten binnen de gekozen periode")
+    income_table = pd.DataFrame([
+        {"Type": "Periodieke donaties", "Bedrag": totals.get("periodieke_donaties", 0)},
+        {"Type": "Eenmalige donaties", "Bedrag": totals.get("eenmalige_donaties", 0)},
+        {"Type": "Overige inkomsten", "Bedrag": totals.get("overige_inkomsten", 0)},
+        {"Type": "Totale inkomsten", "Bedrag": totals.get("inkomsten", 0)},
+    ])
+    income_table = fmt_money_cols(income_table, ["Bedrag"])
+    st.dataframe(income_table, use_container_width=True, hide_index=True)
 
     yearly = fin.get("yearly", [])
     if yearly:
         jaar_tabel = pd.DataFrame(yearly)
-        if "Jaar_tmp" in jaar_tabel.columns:
-            jaar_tabel = jaar_tabel.rename(columns={"Jaar_tmp": "Jaar"})
         jaar_tabel = jaar_tabel.rename(columns={
-            "inkomsten": "Inkomsten",
-            "uitgaven": "Uitgaven",
-            "netto_resultaat": "Netto resultaat",
+            "Jaar": "Jaar",
+            "Inkomsten": "Totale inkomsten",
+            "Uitgaven": "Totale uitgaven",
+            "Netto resultaat": "Netto resultaat",
+            "Periodieke donaties": "Periodieke donaties",
+            "Eenmalige donaties": "Eenmalige donaties",
+            "Overige inkomsten": "Overige inkomsten",
         })
-        keep = [c for c in ["Jaar", "Inkomsten", "Uitgaven", "Netto resultaat"] if c in jaar_tabel.columns]
+        keep = [c for c in ["Jaar", "Periodieke donaties", "Eenmalige donaties", "Overige inkomsten", "Totale inkomsten", "Totale uitgaven", "Netto resultaat"] if c in jaar_tabel.columns]
         jaar_tabel = jaar_tabel[keep]
         jaar_tabel = fmt_year_cols(jaar_tabel, ["Jaar"])
-        jaar_tabel = fmt_money_cols(jaar_tabel, ["Inkomsten", "Uitgaven", "Netto resultaat"])
+        jaar_tabel = fmt_money_cols(jaar_tabel, [c for c in jaar_tabel.columns if c != "Jaar"])
 
-        section_header("Jaaroverzicht resultaat", "Overzicht van inkomsten, uitgaven en netto resultaat per jaar")
+        section_header("Jaaroverzicht resultaat", "Overzicht van inkomsten, uitgaven en netto resultaat per jaar binnen de gekozen periode")
         st.dataframe(jaar_tabel, use_container_width=True, hide_index=True)
 
 def render_generate_tab():
