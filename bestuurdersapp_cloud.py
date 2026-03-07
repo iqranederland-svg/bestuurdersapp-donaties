@@ -344,12 +344,11 @@ def render_donor_health(data):
 
 
 
+
 def render_dashboard_tab(data):
     meta = load_current_period_meta()
     fin = load_financial_summary()
     period_text = str(meta.get("period_label", "gekozen periode"))
-
-    section_header("Management Dashboard", "Belangrijkste financiële en donateurcijfers • " + period_text)
 
     totals = fin.get("totals", {})
     netto_resultaat = float(totals.get("netto_resultaat", 0) or 0)
@@ -364,7 +363,6 @@ def render_dashboard_tab(data):
     lifecycle = data["lifecycle"].copy()
     new_df = data["new"].copy().sort_values("Jaar")
     pareto = data["pareto"].copy()
-    exit_df = data["exit"].copy().sort_values("Laatste actieve jaar")
     dash = data["dashboard"].copy().sort_values("Jaar")
 
     donor_count = 0
@@ -406,52 +404,74 @@ def render_dashboard_tab(data):
             top10_pct = float(top10["Aandeel_inkomsten_pct"].iloc[0])
             top10_amount = float(top10["Bedrag"].iloc[0])
 
-    c1, c2, c3, c4 = st.columns(4)
-    with c1:
+    st.markdown(
+        f"""
+        <div style="background:white;border:1px solid #E5E7EB;border-radius:18px;padding:22px 24px;margin-bottom:18px;box-shadow:0 4px 16px rgba(15,39,71,0.05);">
+            <div style="font-size:13px;color:#6B7280;margin-bottom:6px;">Management factsheet</div>
+            <div style="font-size:30px;font-weight:800;color:#0F2747;line-height:1.15;margin-bottom:8px;">Bestuurlijk kernoverzicht</div>
+            <div style="font-size:15px;color:#374151;line-height:1.5;margin-bottom:14px;">Rapportageperiode: <strong>{period_text}</strong></div>
+            <div style="font-size:15px;color:#374151;line-height:1.7;">
+                In deze periode bedraagt het netto resultaat <strong>{eur(netto_resultaat)}</strong> bij totale inkomsten van <strong>{eur(totale_inkomsten)}</strong>
+                en totale uitgaven van <strong>{eur(totale_uitgaven)}</strong>. De inkomsten bestaan grotendeels uit eenmalige donaties,
+                naast een structurele basis van periodieke donaties. De donateursbasis telt <strong>{i0(donor_count)}</strong> donateurs,
+                waarvan <strong>{i0(active_count)}</strong> actief zijn in het meest recente jaar van de rapportage.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    section_header("Financiële kerncijfers")
+    f1, f2, f3, f4 = st.columns(4)
+    with f1:
         kpi_card("Netto resultaat", eur(netto_resultaat), period_text)
-    with c2:
+    with f2:
         kpi_card("Totale inkomsten", eur(totale_inkomsten), period_text)
-    with c3:
+    with f3:
         kpi_card("Totale uitgaven", eur(totale_uitgaven), period_text)
-    with c4:
+    with f4:
         kpi_card("Contant in kas", eur(contant_kas), "stand op rapportmoment")
 
-    st.markdown("")
-    c5, c6, c7 = st.columns(3)
-    with c5:
-        kpi_card("Periodieke donaties", eur(periodieke_donaties), period_text)
-    with c6:
-        kpi_card("Eenmalige donaties", eur(eenmalige_donaties), period_text)
-    with c7:
-        kpi_card("Overige inkomsten", eur(overige_inkomsten), period_text)
+    section_header("Inkomstenopbouw")
+    income_table = pd.DataFrame([
+        {"Categorie": "Periodieke donaties", "Bedrag": periodieke_donaties},
+        {"Categorie": "Eenmalige donaties", "Bedrag": eenmalige_donaties},
+        {"Categorie": "Overige inkomsten", "Bedrag": overige_inkomsten},
+        {"Categorie": "Totale inkomsten", "Bedrag": totale_inkomsten},
+    ])
+    income_table = fmt_money_cols(income_table, ["Bedrag"])
+    st.dataframe(income_table, use_container_width=True, hide_index=True)
 
-    st.markdown("")
-    c8, c9, c10, c11 = st.columns(4)
-    with c8:
+    section_header("Donateursbasis")
+    d1, d2, d3, d4 = st.columns(4)
+    with d1:
         kpi_card("Aantal donateurs", i0(donor_count), period_text)
-    with c9:
+    with d2:
         active_sub = f"actief in {current_year}" if current_year is not None else period_text
         kpi_card("Actieve donateurs", i0(active_count), active_sub)
-    with c10:
+    with d3:
         new_sub = f"nieuw in {current_year}" if current_year is not None else period_text
         kpi_card("Nieuwe donateurs", i0(new_count), new_sub)
-    with c11:
-        churn_sub = "minstens 1 volledig jaar inactief"
-        kpi_card("Structureel uitgestroomd", i0(structural_churn), churn_sub)
+    with d4:
+        kpi_card("Structureel uitgestroomd", i0(structural_churn), "minstens 1 volledig jaar inactief")
 
-    st.markdown("")
-    c12, c13 = st.columns([1, 3])
-    with c12:
+    section_header("Concentratie van donaties")
+    c1, c2 = st.columns([1, 2])
+    with c1:
         kpi_card("Top 10% donateurs", eur(top10_amount), pct(top10_pct) + " van totale donaties")
-    with c13:
+    with c2:
         st.markdown(
-            "<div class='summary'>"
-            "<strong>Bestuurlijke duiding</strong><br>"
-            "Deze pagina combineert de belangrijkste financiële kerncijfers met de gezondheid van de donateursbasis. "
-            "De eerste rij toont het netto resultaat en de kaspositie. De tweede rij laat zien hoe de inkomsten zijn opgebouwd. "
-            "De derde rij toont de belangrijkste indicatoren voor de ontwikkeling van de donateursbasis. "
-            "Gebruik de overige tabbladen voor verdieping in retentie, uitstroom, financiële details en rapportage."
-            "</div>",
+            f"""
+            <div style="background:white;border:1px solid #E5E7EB;border-radius:18px;padding:18px 20px;min-height:150px;box-shadow:0 4px 16px rgba(15,39,71,0.05);">
+                <div style="font-size:16px;font-weight:700;color:#0F2747;margin-bottom:8px;">Bestuurlijke interpretatie</div>
+                <div style="font-size:14px;color:#374151;line-height:1.7;">
+                    Het dashboard laat zien dat de stichting een sterke netto positie heeft binnen de gekozen rapportageperiode.
+                    De inkomstenbasis steunt grotendeels op eenmalige donaties, met daarnaast een structurele stroom van periodieke donaties.
+                    De donateursbasis blijft relevant om te volgen op instroom, activiteit en uitstroom, terwijl de top 10% van de donateurs
+                    een substantieel deel van de totale donaties vertegenwoordigt.
+                </div>
+            </div>
+            """,
             unsafe_allow_html=True,
         )
 
