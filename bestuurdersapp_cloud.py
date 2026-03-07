@@ -963,5 +963,59 @@ def render_financial_tab(data):
         st.dataframe(expenses, use_container_width=True, hide_index=True)
 
 
+
+# OVERRIDE_CHART_GROUPED_INCOME_MIX_V1
+def chart_grouped_income_mix(yearly_rows):
+    df = pd.DataFrame(yearly_rows)
+    if len(df) == 0:
+        return None
+
+    fig, ax = plt.subplots(figsize=(7.4, 4.4))
+
+    years = df["Jaar"].astype(str).tolist()
+    periodiek = pd.to_numeric(df["Periodieke donaties"], errors="coerce").fillna(0).tolist()
+    eenmalig = pd.to_numeric(df["Eenmalige donaties"], errors="coerce").fillna(0).tolist()
+
+    x = list(range(len(years)))
+    width = 0.34
+
+    bars1 = ax.bar([i - width / 2 for i in x], eenmalig, width=width, label="Eenmalig", color="#2D7FF9")
+    bars2 = ax.bar([i + width / 2 for i in x], periodiek, width=width, label="Periodiek", color="#34A0A4")
+
+    ymax = max(eenmalig + periodiek) if (eenmalig + periodiek) else 0
+    for rect, val in zip(bars1, eenmalig):
+        ax.text(
+            rect.get_x() + rect.get_width() / 2,
+            rect.get_height() + (0.02 * ymax if ymax > 0 else 0.2),
+            eur(val),
+            ha="center",
+            va="bottom",
+            fontsize=9,
+            fontweight="bold",
+            color="#0F2747",
+        )
+    for rect, val in zip(bars2, periodiek):
+        ax.text(
+            rect.get_x() + rect.get_width() / 2,
+            rect.get_height() + (0.02 * ymax if ymax > 0 else 0.2),
+            eur(val),
+            ha="center",
+            va="bottom",
+            fontsize=9,
+            fontweight="bold",
+            color="#0F2747",
+        )
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(years)
+    ax.grid(axis="y", alpha=0.16)
+    ax.set_axisbelow(True)
+    ax.legend(frameon=False, ncol=2, loc="upper left")
+    for spine in ["top", "right"]:
+        ax.spines[spine].set_visible(False)
+    fig.tight_layout()
+    return fig
+
+
 if __name__ == "__main__":
     main()
