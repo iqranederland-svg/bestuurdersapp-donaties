@@ -159,23 +159,30 @@ def inject_css():
     st.markdown(
         """
 <style>
-.block-container{max-width:1500px;padding-top:1rem;padding-bottom:2rem;}
-.stApp{background:#F4F7FB;}
-.hero{background:linear-gradient(135deg,#0F2747 0%,#1E3A5F 100%);padding:28px 32px;border-radius:24px;color:white;margin-bottom:20px;box-shadow:0 10px 26px rgba(15,39,71,0.16);}
-.hero-kicker{font-size:13px;opacity:0.86;margin-bottom:8px;}
-.hero-title{font-size:38px;font-weight:800;margin-bottom:8px;line-height:1.12;}
-.hero-sub{font-size:16px;line-height:1.55;max-width:980px;}
-.kpi{background:white;padding:18px 18px 16px 18px;border-radius:18px;border:1px solid #E5E7EB;min-height:150px;height:150px;box-shadow:0 4px 16px rgba(15,39,71,0.05);display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;}
-.kpi-title{font-size:13px;color:#6B7280;line-height:1.35;min-height:34px;}
-.kpi-value{font-size:30px;font-weight:800;color:#0F2747;line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.kpi-sub{font-size:12px;color:#6B7280;line-height:1.4;min-height:34px;overflow:hidden;}
-.section{font-size:26px;font-weight:800;margin-top:26px;margin-bottom:8px;color:#0F2747;line-height:1.15;}
+.block-container{max-width:1520px;padding-top:1rem;padding-bottom:2rem;}
+.stApp{background:linear-gradient(180deg,#F5F7FB 0%,#EEF3F9 100%);}
+.hero{background:linear-gradient(135deg,#0B1F3A 0%,#143D6B 55%,#1F5D8B 100%);padding:30px 34px;border-radius:28px;color:white;margin-bottom:22px;box-shadow:0 18px 42px rgba(11,31,58,0.20);}
+.hero-kicker{font-size:13px;opacity:0.82;margin-bottom:8px;letter-spacing:.02em;}
+.hero-title{font-size:40px;font-weight:800;margin-bottom:8px;line-height:1.08;}
+.hero-sub{font-size:16px;line-height:1.6;max-width:1040px;opacity:0.96;}
+.kpi{background:linear-gradient(180deg,#FFFFFF 0%,#FAFBFD 100%);padding:18px 18px 16px 18px;border-radius:22px;border:1px solid #E5EAF2;min-height:156px;height:156px;box-shadow:0 10px 24px rgba(15,39,71,0.06);display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;}
+.kpi-title{font-size:13px;color:#6B7280;line-height:1.35;min-height:34px;font-weight:600;}
+.kpi-value{font-size:32px;font-weight:800;color:#0F2747;line-height:1.02;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.kpi-sub{font-size:12px;color:#667085;line-height:1.4;min-height:34px;overflow:hidden;}
+.section{font-size:28px;font-weight:800;margin-top:28px;margin-bottom:8px;color:#0F2747;line-height:1.12;}
 .subsection{font-size:20px;font-weight:700;margin-top:18px;margin-bottom:8px;color:#0F2747;line-height:1.2;}
-.section-sub{font-size:14px;color:#6B7280;margin-bottom:14px;line-height:1.4;}
-.summary{background:white;padding:15px;border-radius:14px;border:1px solid #E5E7EB;margin-bottom:10px;line-height:1.6;box-shadow:0 4px 16px rgba(15,39,71,0.05);}
-.info-box{background:#FFFFFF;border:1px solid #D8E1EE;border-left:5px solid #0F2747;padding:14px 16px;border-radius:12px;line-height:1.6;margin-bottom:12px;}
+.section-sub{font-size:14px;color:#667085;margin-bottom:14px;line-height:1.45;}
+.summary{background:white;padding:16px 18px;border-radius:18px;border:1px solid #E5EAF2;margin-bottom:12px;line-height:1.65;box-shadow:0 8px 22px rgba(15,39,71,0.05);}
+.info-box{background:#FFFFFF;border:1px solid #D8E1EE;border-left:5px solid #1F5D8B;padding:14px 16px;border-radius:14px;line-height:1.65;margin-bottom:12px;}
 .nowrap{white-space:nowrap;}
-div[data-testid="stMetric"]{background:white;border:1px solid #E5E7EB;padding:14px;border-radius:14px;}
+div[data-testid="stMetric"]{background:white;border:1px solid #E5EAF2;padding:14px;border-radius:16px;}
+.fact-card{background:linear-gradient(180deg,#FFFFFF 0%,#FBFCFE 100%);border:1px solid #E5EAF2;border-radius:22px;padding:20px 22px;box-shadow:0 10px 24px rgba(15,39,71,0.06);}
+.fact-title{font-size:18px;font-weight:800;color:#0F2747;margin-bottom:12px;}
+.hero-metric{background:rgba(255,255,255,0.10);border:1px solid rgba(255,255,255,0.14);border-radius:18px;padding:16px 18px;}
+.hero-metric-label{font-size:12px;opacity:0.80;margin-bottom:6px;}
+.hero-metric-value{font-size:30px;font-weight:800;line-height:1.0;}
+.hero-metric-sub{font-size:12px;opacity:0.76;margin-top:8px;line-height:1.4;}
+.small-note{font-size:12px;color:#667085;line-height:1.5;}
 </style>
         """,
         unsafe_allow_html=True,
@@ -252,6 +259,57 @@ def chart_line(df: pd.DataFrame, x: str, y: str, title: str, kind: str = "count"
     return fig
 
 
+
+
+def chart_bar_custom(df: pd.DataFrame, x: str, y: str, title: str, kind: str = "count", rotate: int = 0):
+    fig, ax = plt.subplots(figsize=(7.4, 4.3))
+    labels = df[x].astype(str).tolist()
+    values = df[y].astype(float).tolist()
+    bars = ax.bar(labels, values, color="#1F5D8B")
+    ax.set_title(title, fontsize=14, fontweight="bold", pad=14, color="#0F2747")
+    ax.grid(axis="y", alpha=0.18)
+    ax.set_axisbelow(True)
+    ax.tick_params(axis="x", rotation=rotate, labelsize=10)
+    ax.tick_params(axis="y", labelsize=10)
+    ymax = max(values) if values else 0
+    for rect, val in zip(bars, values):
+        label = eur(val) if kind == "eur" else pct(val) if kind == "pct" else i0(val)
+        inside = ymax > 0 and val > ymax * 0.16
+        y_text = rect.get_height() - (0.05 * ymax) if inside else rect.get_height() + (0.02 * ymax if ymax > 0 else 0.2)
+        va = "top" if inside else "bottom"
+        color = "white" if inside else "#0F2747"
+        ax.text(rect.get_x() + rect.get_width() / 2, y_text, label, ha="center", va=va, fontsize=10, fontweight="bold", color=color)
+    for spine in ["top", "right"]:
+        ax.spines[spine].set_visible(False)
+    fig.tight_layout()
+    return fig
+
+
+def chart_stack_income_mix(yearly_rows):
+    df = pd.DataFrame(yearly_rows)
+    if len(df) == 0:
+        return None
+    fig, ax = plt.subplots(figsize=(7.4, 4.3))
+    years = df["Jaar"].astype(str).tolist()
+    eenmalig = pd.to_numeric(df["Eenmalige donaties"], errors="coerce").fillna(0).tolist()
+    periodiek = pd.to_numeric(df["Periodieke donaties"], errors="coerce").fillna(0).tolist()
+    overig = pd.to_numeric(df["Overige inkomsten"], errors="coerce").fillna(0).tolist()
+    ax.bar(years, eenmalig, label="Eenmalig", color="#1F5D8B")
+    ax.bar(years, periodiek, bottom=eenmalig, label="Periodiek", color="#34A0A4")
+    bottoms = [a + b for a, b in zip(eenmalig, periodiek)]
+    ax.bar(years, overig, bottom=bottoms, label="Overig", color="#94A3B8")
+    totals = [a + b + c for a, b, c in zip(eenmalig, periodiek, overig)]
+    ymax = max(totals) if totals else 0
+    for x, total in zip(years, totals):
+        ax.text(x, total + (0.02 * ymax if ymax > 0 else 0.2), eur(total), ha="center", va="bottom", fontsize=10, fontweight="bold", color="#0F2747")
+    ax.set_title("Inkomstenmix per jaar", fontsize=14, fontweight="bold", pad=14, color="#0F2747")
+    ax.grid(axis="y", alpha=0.18)
+    ax.set_axisbelow(True)
+    ax.legend(frameon=False, ncol=3, loc="upper left")
+    for spine in ["top", "right"]:
+        ax.spines[spine].set_visible(False)
+    fig.tight_layout()
+    return fig
 
 def render_kpis(data):
     dash = data["dashboard"].copy()
@@ -346,6 +404,7 @@ def render_donor_health(data):
 
 
 
+
 def render_dashboard_tab(data):
     meta = load_current_period_meta()
     fin = load_financial_summary()
@@ -365,15 +424,14 @@ def render_dashboard_tab(data):
     new_df = data["new"].copy().sort_values("Jaar")
     pareto = data["pareto"].copy()
     dash = data["dashboard"].copy().sort_values("Jaar")
+    yearly = fin.get("yearly", [])
 
     donor_count = 0
     hit = donors.loc[donors["KPI"] == "Unieke bankdonateurs", "Waarde"]
     if len(hit):
         donor_count = int(hit.iloc[0])
 
-    current_year = None
-    if len(dash):
-        current_year = int(dash["Jaar"].max())
+    current_year = int(dash["Jaar"].max()) if len(dash) else None
 
     active_count = 0
     new_count = 0
@@ -407,102 +465,105 @@ def render_dashboard_tab(data):
 
     st.markdown(
         f"""
-        <div style="background:linear-gradient(135deg,#0F2747 0%,#1E3A5F 100%);border-radius:24px;padding:28px 30px;margin-bottom:22px;color:white;box-shadow:0 14px 34px rgba(15,39,71,0.18);">
-            <div style="font-size:13px;opacity:0.82;margin-bottom:8px;">Management factsheet</div>
-            <div style="font-size:34px;font-weight:800;line-height:1.12;margin-bottom:8px;">Bestuurlijk kernoverzicht</div>
-            <div style="font-size:15px;line-height:1.55;opacity:0.96;margin-bottom:18px;">Rapportageperiode: <strong>{period_text}</strong></div>
-            <div style="display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:14px;align-items:stretch;">
-                <div style="background:rgba(255,255,255,0.10);border:1px solid rgba(255,255,255,0.14);border-radius:18px;padding:18px 18px 16px 18px;">
-                    <div style="font-size:12px;opacity:0.82;margin-bottom:8px;">Netto resultaat</div>
-                    <div style="font-size:34px;font-weight:800;line-height:1.0;margin-bottom:8px;">{eur(netto_resultaat)}</div>
-                    <div style="font-size:13px;opacity:0.82;">exclusief contant in kas</div>
+        <div style="background:linear-gradient(135deg,#0B1F3A 0%,#143D6B 55%,#1F5D8B 100%);border-radius:28px;padding:30px 32px;margin-bottom:22px;color:white;box-shadow:0 18px 42px rgba(11,31,58,0.20);">
+            <div style="font-size:13px;opacity:0.80;margin-bottom:8px;letter-spacing:.02em;">Management factsheet</div>
+            <div style="font-size:40px;font-weight:800;line-height:1.05;margin-bottom:8px;">Bestuurlijk kernoverzicht</div>
+            <div style="font-size:15px;line-height:1.55;opacity:0.95;margin-bottom:18px;">Rapportageperiode: <strong>{period_text}</strong></div>
+            <div style="display:grid;grid-template-columns:1.35fr 1fr 1fr;gap:14px;">
+                <div class="hero-metric">
+                    <div class="hero-metric-label">Netto resultaat</div>
+                    <div class="hero-metric-value">{eur(netto_resultaat)}</div>
+                    <div class="hero-metric-sub">exclusief contant in kas</div>
                 </div>
-                <div style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:18px;padding:16px 18px;">
-                    <div style="font-size:12px;opacity:0.82;">Totale inkomsten</div>
-                    <div style="font-size:26px;font-weight:800;margin-top:4px;">{eur(totale_inkomsten)}</div>
-                    <div style="font-size:12px;opacity:0.75;margin-top:10px;">Totale uitgaven</div>
-                    <div style="font-size:22px;font-weight:700;margin-top:4px;">{eur(totale_uitgaven)}</div>
+                <div class="hero-metric">
+                    <div class="hero-metric-label">Totale inkomsten</div>
+                    <div class="hero-metric-value">{eur(totale_inkomsten)}</div>
+                    <div class="hero-metric-sub">binnen de rapportageperiode</div>
                 </div>
-                <div style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:18px;padding:16px 18px;">
-                    <div style="font-size:12px;opacity:0.82;">Contant in kas</div>
-                    <div style="font-size:26px;font-weight:800;margin-top:4px;">{eur(contant_kas)}</div>
-                    <div style="font-size:12px;opacity:0.75;margin-top:10px;">Netto incl. kas</div>
-                    <div style="font-size:22px;font-weight:700;margin-top:4px;">{eur(netto_resultaat + contant_kas)}</div>
+                <div class="hero-metric">
+                    <div class="hero-metric-label">Totale uitgaven</div>
+                    <div class="hero-metric-value">{eur(totale_uitgaven)}</div>
+                    <div class="hero-metric-sub">binnen de rapportageperiode</div>
                 </div>
             </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
+
+    top_left, top_right = st.columns([1.05, 0.95])
+
+    with top_left:
+        st.markdown('<div class="fact-card"><div class="fact-title">Inkomstenopbouw</div></div>', unsafe_allow_html=True)
+        income_table = pd.DataFrame([
+            {"Categorie": "Eenmalige donaties", "Bedrag": eenmalige_donaties},
+            {"Categorie": "Periodieke donaties", "Bedrag": periodieke_donaties},
+            {"Categorie": "Overige inkomsten", "Bedrag": overige_inkomsten},
+            {"Categorie": "Totale inkomsten", "Bedrag": totale_inkomsten},
+        ])
+        income_table = fmt_money_cols(income_table, ["Bedrag"])
+        st.dataframe(income_table, use_container_width=True, hide_index=True)
+
+    with top_right:
+        st.markdown(
+            f"""
+            <div class="fact-card">
+                <div class="fact-title">Bestuurlijke duiding</div>
+                <div style="font-size:14px;color:#374151;line-height:1.8;">
+                    Het netto resultaat komt uit op <strong>{eur(netto_resultaat)}</strong> bij totale inkomsten van <strong>{eur(totale_inkomsten)}</strong> en uitgaven van <strong>{eur(totale_uitgaven)}</strong>.
+                    De inkomstenbasis wordt vooral gedragen door <strong>eenmalige donaties</strong>, terwijl <strong>periodieke donaties</strong> zorgen voor structurele continuïteit.
+                    De donateursbasis telt <strong>{i0(donor_count)}</strong> donateurs, waarvan <strong>{i0(active_count)}</strong> actief zijn in het meest recente jaar.
+                    De top 10% van de donateurs vertegenwoordigt <strong>{pct(top10_pct)}</strong> van de totale donaties en blijft daarmee bestuurlijk relevant om te monitoren.
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    section_header("Kernindicatoren")
+    c1, c2, c3, c4, c5 = st.columns(5)
+    with c1:
+        kpi_card("Contant in kas", eur(contant_kas), "stand op rapportmoment")
+    with c2:
+        kpi_card("Netto incl. kas", eur(netto_resultaat + contant_kas), period_text)
+    with c3:
+        kpi_card("Aantal donateurs", i0(donor_count), period_text)
+    with c4:
+        active_sub = f"actief in {current_year}" if current_year is not None else period_text
+        kpi_card("Actieve donateurs", i0(active_count), active_sub)
+    with c5:
+        new_sub = f"nieuw in {current_year}" if current_year is not None else period_text
+        kpi_card("Nieuwe donateurs", i0(new_count), new_sub)
+
+    st.markdown("")
+    c6, c7 = st.columns([1, 1])
+    with c6:
+        kpi_card("Structureel uitgestroomd", i0(structural_churn), "minstens 1 volledig jaar inactief")
+    with c7:
+        kpi_card("Top 10% donateurs", eur(top10_amount), pct(top10_pct) + " van totale donaties")
+
+    section_header("Progressie")
+    g1, g2, g3 = st.columns(3)
+
+    yearly_df = pd.DataFrame(yearly) if yearly else pd.DataFrame()
+    if len(yearly_df):
+        if "Jaar" in yearly_df.columns and "Inkomsten" in yearly_df.columns:
+            with g1:
+                st.pyplot(chart_bar_custom(yearly_df, "Jaar", "Inkomsten", "Donaties per jaar", kind="eur"), use_container_width=True)
+        donor_year_df = dash[["Jaar", "Unieke_bankdonateurs"]].copy() if "Unieke_bankdonateurs" in dash.columns else pd.DataFrame()
+        if len(donor_year_df):
+            with g2:
+                st.pyplot(chart_bar_custom(donor_year_df, "Jaar", "Unieke_bankdonateurs", "Aantal donateurs per jaar"), use_container_width=True)
+        mix_fig = chart_stack_income_mix(yearly)
+        if mix_fig is not None:
+            with g3:
+                st.pyplot(mix_fig, use_container_width=True)
 
     st.markdown(
         """
-        <div style="display:grid;grid-template-columns:1.15fr 1fr;gap:18px;margin-bottom:18px;">
-            <div style="background:white;border:1px solid #E5E7EB;border-radius:20px;padding:20px 22px;box-shadow:0 6px 20px rgba(15,39,71,0.06);">
-                <div style="font-size:18px;font-weight:800;color:#0F2747;margin-bottom:14px;">Inkomstenopbouw</div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    income_table = pd.DataFrame([
-        {"Categorie": "Eenmalige donaties", "Bedrag": eenmalige_donaties},
-        {"Categorie": "Periodieke donaties", "Bedrag": periodieke_donaties},
-        {"Categorie": "Overige inkomsten", "Bedrag": overige_inkomsten},
-        {"Categorie": "Totale inkomsten", "Bedrag": totale_inkomsten},
-    ])
-    income_table = fmt_money_cols(income_table, ["Bedrag"])
-    st.dataframe(income_table, use_container_width=True, hide_index=True)
-
-    st.markdown(
-        f"""
-            </div>
-            <div style="background:white;border:1px solid #E5E7EB;border-radius:20px;padding:20px 22px;box-shadow:0 6px 20px rgba(15,39,71,0.06);">
-                <div style="font-size:18px;font-weight:800;color:#0F2747;margin-bottom:14px;">Donateursbasis</div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                    <div style="background:#F8FAFC;border:1px solid #E5E7EB;border-radius:16px;padding:14px 16px;">
-                        <div style="font-size:12px;color:#6B7280;">Aantal donateurs</div>
-                        <div style="font-size:28px;font-weight:800;color:#0F2747;margin-top:4px;">{i0(donor_count)}</div>
-                    </div>
-                    <div style="background:#F8FAFC;border:1px solid #E5E7EB;border-radius:16px;padding:14px 16px;">
-                        <div style="font-size:12px;color:#6B7280;">Actieve donateurs</div>
-                        <div style="font-size:28px;font-weight:800;color:#0F2747;margin-top:4px;">{i0(active_count)}</div>
-                        <div style="font-size:12px;color:#6B7280;margin-top:4px;">actief in {current_year if current_year is not None else "-"}</div>
-                    </div>
-                    <div style="background:#F8FAFC;border:1px solid #E5E7EB;border-radius:16px;padding:14px 16px;">
-                        <div style="font-size:12px;color:#6B7280;">Nieuwe donateurs</div>
-                        <div style="font-size:28px;font-weight:800;color:#0F2747;margin-top:4px;">{i0(new_count)}</div>
-                        <div style="font-size:12px;color:#6B7280;margin-top:4px;">nieuw in {current_year if current_year is not None else "-"}</div>
-                    </div>
-                    <div style="background:#F8FAFC;border:1px solid #E5E7EB;border-radius:16px;padding:14px 16px;">
-                        <div style="font-size:12px;color:#6B7280;">Structureel uitgestroomd</div>
-                        <div style="font-size:28px;font-weight:800;color:#0F2747;margin-top:4px;">{i0(structural_churn)}</div>
-                        <div style="font-size:12px;color:#6B7280;margin-top:4px;">minstens 1 jaar inactief</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    st.markdown(
-        f"""
-        <div style="display:grid;grid-template-columns:0.95fr 1.05fr;gap:18px;">
-            <div style="background:white;border:1px solid #E5E7EB;border-radius:20px;padding:20px 22px;box-shadow:0 6px 20px rgba(15,39,71,0.06);">
-                <div style="font-size:18px;font-weight:800;color:#0F2747;margin-bottom:12px;">Concentratie van donaties</div>
-                <div style="font-size:12px;color:#6B7280;">Top 10% donateurs</div>
-                <div style="font-size:30px;font-weight:800;color:#0F2747;line-height:1.0;margin-top:6px;">{eur(top10_amount)}</div>
-                <div style="font-size:14px;color:#374151;margin-top:10px;">{pct(top10_pct)} van totale donaties</div>
-            </div>
-            <div style="background:white;border:1px solid #E5E7EB;border-radius:20px;padding:20px 22px;box-shadow:0 6px 20px rgba(15,39,71,0.06);">
-                <div style="font-size:18px;font-weight:800;color:#0F2747;margin-bottom:12px;">Bestuurlijke duiding</div>
-                <div style="font-size:14px;color:#374151;line-height:1.75;">
-                    Het netto resultaat bedraagt <strong>{eur(netto_resultaat)}</strong> bij totale inkomsten van <strong>{eur(totale_inkomsten)}</strong> en totale uitgaven van <strong>{eur(totale_uitgaven)}</strong>.
-                    De inkomsten bestaan hoofdzakelijk uit <strong>eenmalige donaties</strong>, naast een structurele basis van <strong>periodieke donaties</strong>.
-                    De donateursbasis telt <strong>{i0(donor_count)}</strong> donateurs, waarvan <strong>{i0(active_count)}</strong> actief zijn in het meest recente jaar van de rapportage.
-                    De top 10% van de donateurs vertegenwoordigt een substantieel deel van de totale donaties en blijft daarmee bestuurlijk relevant om te volgen.
-                </div>
-            </div>
+        <div class="summary" style="margin-top:14px;">
+            <strong>Leeshulp voor bestuur</strong><br>
+            Kijk eerst naar het netto resultaat en de inkomstenopbouw. Bekijk daarna of de donateursbasis groeit en of de mix tussen eenmalige en periodieke donaties zich gezond ontwikkelt. Gebruik de andere tabbladen voor verdieping in retentie, uitstroom, financiële details en rapportage.
         </div>
         """,
         unsafe_allow_html=True,
