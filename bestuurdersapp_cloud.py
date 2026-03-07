@@ -957,5 +957,166 @@ def chart_grouped_income_mix(yearly_rows):
     return fig
 
 
+
+# OVERRIDE_HOMEPAGE_V4
+def chart_grouped_income_mix(yearly_rows):
+    df = pd.DataFrame(yearly_rows)
+    if len(df) == 0:
+        return None
+
+    fig, ax = plt.subplots(figsize=(7.2, 4.25))
+
+    years = df["Jaar"].astype(str).tolist()
+    periodiek = pd.to_numeric(df["Periodieke donaties"], errors="coerce").fillna(0).tolist()
+    eenmalig = pd.to_numeric(df["Eenmalige donaties"], errors="coerce").fillna(0).tolist()
+
+    x = list(range(len(years)))
+    width = 0.34
+
+    ax.bar([i - width / 2 for i in x], eenmalig, width=width, label="Eenmalig", color="#1F5D8B")
+    ax.bar([i + width / 2 for i in x], periodiek, width=width, label="Periodiek", color="#5B8DB8")
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(years)
+    ax.set_title("Eenmalig vs periodiek per jaar", fontsize=14, fontweight="bold", pad=12, color="#0F2747")
+    ax.grid(axis="y", alpha=0.15)
+    ax.set_axisbelow(True)
+    ax.tick_params(axis="x", labelsize=10)
+    ax.tick_params(axis="y", labelsize=10)
+    ax.legend(frameon=False, ncol=2, loc="upper left")
+
+    for spine in ["top", "right"]:
+        ax.spines[spine].set_visible(False)
+
+    fig.tight_layout()
+    return fig
+
+
+def render_dashboard_tab(data):
+    meta = load_current_period_meta()
+    fin = load_financial_summary()
+    period_text = str(meta.get("period_label", "gekozen periode"))
+
+    totals = fin.get("totals", {})
+    netto_resultaat = float(totals.get("netto_resultaat", 0) or 0)
+    totale_inkomsten = float(totals.get("inkomsten", 0) or 0)
+    totale_uitgaven = float(totals.get("uitgaven", 0) or 0)
+    contant_kas = float(totals.get("contant_kas", meta.get("contant_kas", 0)) or 0)
+    netto_incl_kas = netto_resultaat + contant_kas
+    periodieke_donaties = float(totals.get("periodieke_donaties", 0) or 0)
+    eenmalige_donaties = float(totals.get("eenmalige_donaties", 0) or 0)
+    overige_inkomsten = float(totals.get("overige_inkomsten", 0) or 0)
+
+    donors = data["donors"].copy()
+    lifecycle = data["lifecycle"].copy()
+    new_df = data["new"].copy().sort_values("Jaar")
+    pareto = data["pareto"].copy()
+    dash = data["dashboard"].copy().sort_values("Jaar")
+    yearly = fin.get("yearly", [])
+
+    donor_count = 0
+    hit = donors.loc[donors["KPI"] == "Unieke bankdonateurs", "Waarde"]
+    if len(hit):
+        donor_count = int(hit.iloc[0])
+
+    current_year = int(dash["Jaar"].max()) if len(dash) else None
+
+    active_count = 0
+    new_count = 0
+    structural_churn = 0
+
+    if len(lifecycle):
+        lc = lifecycle.copy()
+        if "Laatste_jaar" in lc.columns and current_year is not None:
+            lc["Laatste_jaar"] = pd.to_numeric(lc["Laatste_jaar"], errors="coerce")
+            active_count = int((lc["Laatste_jaar"] == current_year).sum())
+            structural_churn = int((lc["Laatste_jaar"] < (current_year - 1)).sum())
+        if "Eerste_jaar" in lc.columns and current_year is not None:
+            lc["Eerste_jaar"] = pd.to_numeric(lc["Eerste_jaar"], errors="coerce")
+            new_count = int((lc["Eerste_jaar"] == current_year).sum())
+
+    if len(new_df) and current_year is not None:
+        row = new_df.loc[pd.to_numeric(new_df["Jaar"], errors="coerce") == current_year]
+        if len(row) and "Nieuwe donateurs sinds start dataset" in row.columns:
+            try:
+                new_count = int(row.iloc[0]["Nieuwe donateurs sinds start dataset"])
+            except Exception:
+                pass
+
+    top10_pct = 0.0
+    top10_amount = 0.0
+    if len(pareto):
+        top10 = pareto.loc[pareto["Segment"] == "Top 10%"]
+        if len(top10):
+            top10_pct = float(top10["Aandeel_inkomsten_pct"].iloc[0])
+            top10_amount = float(top10["Bedrag"].iloc[0])
+
+    section_header("Management Dashboard", "Belangrijkste bestuurscijfers • " + period_text)
+
+    section_header("Financieel", "Kerncijfers voor resultaat, inkomsten, kas en uitgaven")
+    f1, f2, f3, f4 = st.columns(4)
+    with f1:
+        kpi_card("Netto resultaat incl. kas", eur(netto_incl_kas), "netto resultaat + kas")
+    with f2:
+        kpi_card("Totale inkomsten", eur(totale_inkomsten), "exclusief contant in kas")
+    with f3:
+        kpi_card("Contant in kas", eur(contant_kas), "stand op rapportmoment")
+    with f4:
+        kpi_card("Totale uitgaven", eur(totale_uitgaven), period_text)
+
+    section_header("Donateurs", "Kerncijfers voor omvang, activiteit en concentratie")
+    d1, d2, d3, d4 = st.columns(4)
+    with d1:
+        kpi_card("Aantal donateurs", i0(donor_count), period_text)
+    with d2:
+        active_sub = f"actief in {current_year}" if current_year is not None else period_text
+        kpi_card("Actieve donateurs", i0(active_count), active_sub)
+    with d3:
+        new_sub = f"nieuw in {current_year}" if current_year is not None else period_text
+        kpi_card("Nieuwe donateurs", i0(new_count), new_sub)
+    with d4:
+        kpi_card("Top 10% donateurs", eur(top10_amount), pct(top10_pct) + " van totale donaties")
+
+    st.markdown("")
+    left, right = st.columns([1, 1])
+
+    with left:
+        section_header("Inkomstenopbouw")
+        income_table = pd.DataFrame([
+            {"Categorie": "Eenmalige donaties", "Bedrag": eenmalige_donaties},
+            {"Categorie": "Periodieke donaties", "Bedrag": periodieke_donaties},
+            {"Categorie": "Overige inkomsten", "Bedrag": overige_inkomsten},
+            {"Categorie": "Totale inkomsten", "Bedrag": totale_inkomsten},
+        ])
+        income_table = fmt_money_cols(income_table, ["Bedrag"])
+        st.dataframe(income_table, use_container_width=True, hide_index=True)
+
+    with right:
+        section_header("Duiding")
+        st.markdown(
+            "<div class='summary'>"
+            f"• Het netto resultaat komt uit op <strong>{eur(netto_incl_kas)}</strong> inclusief kas.<br>"
+            "• De inkomstenbasis wordt hoofdzakelijk gedragen door <strong>eenmalige donaties</strong>.<br>"
+            "• Strategisch blijft het belangrijk om het aandeel <strong>periodieke donaties</strong> verder te vergroten.<br>"
+            "• Contant in kas is apart opgenomen en wordt niet meegenomen in de grafieken."
+            "</div>",
+            unsafe_allow_html=True,
+        )
+
+    section_header("Progressie", "Ontwikkeling van bankinkomsten en inkomstenmix • contant niet meegenomen")
+    g1, g2 = st.columns(2)
+
+    yearly_df = pd.DataFrame(yearly) if yearly else pd.DataFrame()
+    if len(yearly_df):
+        if "Jaar" in yearly_df.columns and "Inkomsten" in yearly_df.columns:
+            with g1:
+                st.pyplot(chart_bar_custom(yearly_df, "Jaar", "Inkomsten", "Bankinkomsten per jaar", kind="eur"), use_container_width=True)
+
+        mix_fig = chart_grouped_income_mix(yearly)
+        if mix_fig is not None:
+            with g2:
+                st.pyplot(mix_fig, use_container_width=True)
+
+
 if __name__ == "__main__":
     main()
