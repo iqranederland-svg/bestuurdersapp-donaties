@@ -531,7 +531,13 @@ def render_financial_tab(data):
             pass
 
     inkomsten = float(tx.loc[tx["Bedrag"] > 0, "Bedrag"].sum()) if "Bedrag" in tx.columns else 0.0
-    uitgaven = float(abs(tx.loc[tx["Bedrag"] < 0, "Bedrag"].sum())) if "Bedrag" in tx.columns else 0.0
+
+    uitgaven = 0.0
+    if "Bedrag" in tx.columns:
+        neg = tx.loc[tx["Bedrag"] < 0, "Bedrag"]
+        if len(neg):
+            uitgaven = float(abs(neg.sum()))
+
     netto_resultaat = inkomsten - uitgaven
     netto_incl_kas = netto_resultaat + contant_kas
 
