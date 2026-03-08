@@ -763,15 +763,15 @@ def main():
             <div class="hero-kicker">Bestuursomgeving • Privacy-veilige rapportage</div>
             <div class="hero-title">Donateur Intelligence Platform</div>
             
+
 <div class="hero-sub">
 Dit dashboard geeft bestuurlijke inzichten in de ontwikkeling van donaties en de donateurbasis op basis van geanalyseerde banktransacties.
-De rapportage laat zien hoe inkomsten zich ontwikkelen, hoeveel unieke donateurs actief zijn, hoe retentie en uitstroom verlopen
-en in welke mate de inkomsten worden gedragen door verschillende groepen donateurs.
+De rapportage toont hoe inkomsten zich ontwikkelen, hoeveel unieke donateurs actief zijn en hoe retentie en uitstroom binnen de donateurbasis verlopen.
 
-Alle analyses in deze omgeving zijn volledig geanonimiseerd. Namen en IBAN-nummers zijn niet zichtbaar.
-De rapportage is bedoeld als stuurinformatie voor bestuur en management om financiële ontwikkeling,
-donateurgedrag en risico’s in de inkomstenbasis te monitoren.
+Alle analyses zijn volledig geanonimiseerd: namen en IBAN-nummers zijn niet zichtbaar.
+De rapportage dient als stuurinformatie voor bestuur en management om financiële ontwikkeling, donateurgedrag en risico’s in de inkomstenbasis te monitoren.
 </div>
+
 
         </div>
         """,
