@@ -1,8 +1,8 @@
 {
   "period_key": "2023_01_tot_2026_03",
-  "period_label": "januari 2023 t/m 07-03-2026",
+  "period_label": "januari 2023 t/m 08-03-2026",
   "start_date": "2023-01-01",
-  "end_date": "2026-03-07",
+  "end_date": "2026-03-08",
   "status": "voorlopig",
   "rows": 26686,
   "totals": {
@@ -15,6 +15,11 @@
     "eenmalige_donaties": 642059.83,
     "overige_inkomsten": 0.0,
     "totale_donaties": 763972.9099999999
+  },
+  "exit_metrics": {
+    "structureel_uitgestroomd": 1680,
+    "niet_gedoneerd_2026": 3931,
+    "laatste_donatie_2025": 2251
   },
   "yearly": [
     {
