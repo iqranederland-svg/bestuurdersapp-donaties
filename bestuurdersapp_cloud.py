@@ -805,6 +805,9 @@ def chart_grouped_income_mix(yearly_rows):
 # RAMADAN ANALYSE
 # -------------------------------
 
+
+
+
 def render_ramadan_tab(data):
 
     section_header("Ramadan analyse", "Eenmalige donaties tijdens Ramadan")
@@ -818,46 +821,50 @@ def render_ramadan_tab(data):
 
     tx = data["transactions"].copy()
 
-    tx["date"] = pd.to_datetime(tx["date"], errors="coerce")
-    tx["amount"] = pd.to_numeric(tx["amount"], errors="coerce")
+    if "Datum" not in tx.columns or "Bedrag" not in tx.columns:
+        st.error("Kolommen 'Datum' of 'Bedrag' ontbreken in transacties")
+        st.write(tx.columns)
+        return
 
-    ramadan_totals = []
-    last12_rows = []
+    tx["date"] = pd.to_datetime(tx["Datum"], errors="coerce", dayfirst=True)
+    tx["amount"] = pd.to_numeric(tx["Bedrag"], errors="coerce")
+
+    tx = tx.dropna(subset=["date","amount"])
+
+    totals = []
+    last12 = []
 
     for year,(start,end) in ramadan_periods.items():
 
-        start = pd.to_datetime(start)
-        end = pd.to_datetime(end)
+        start = pd.Timestamp(start)
+        end = pd.Timestamp(end)
 
         df = tx[(tx["date"]>=start) & (tx["date"]<=end)]
 
-        total = df["amount"].sum()
-
-        ramadan_totals.append({
+        totals.append({
             "Jaar":year,
-            "Totaal":total
+            "Bedrag":df["amount"].sum()
         })
 
         last12_start = end - pd.Timedelta(days=11)
 
-        last12 = df[(df["date"]>=last12_start) & (df["date"]<=end)]
+        df12 = df[(df["date"]>=last12_start) & (df["date"]<=end)]
 
-        per_day = last12.groupby(last12["date"].dt.date)["amount"].sum().reset_index()
-
+        per_day = df12.groupby(df12["date"].dt.date)["amount"].sum().reset_index()
         per_day["Jaar"]=year
 
-        last12_rows.append(per_day)
+        last12.append(per_day)
 
-    ramadan_totals = pd.DataFrame(ramadan_totals)
+    totals = pd.DataFrame(totals)
 
-    section_header("Totaal eenmalige donaties per Ramadan")
+    section_header("Totaal donaties per Ramadan")
 
     st.pyplot(
         chart_bar_custom(
-            ramadan_totals,
+            totals,
             "Jaar",
-            "Totaal",
-            "Totaal eenmalige donaties tijdens Ramadan",
+            "Bedrag",
+            "Totale donaties tijdens Ramadan",
             kind="eur"
         ),
         use_container_width=True
@@ -865,17 +872,13 @@ def render_ramadan_tab(data):
 
     section_header("Laatste 12 dagen van Ramadan")
 
-    last12 = pd.concat(last12_rows)
+    last12 = pd.concat(last12)
 
-    pivot = last12.pivot(index="date",columns="Jaar",values="amount")
+    pivot = last12.pivot(index="date",columns="Jaar",values="amount").fillna(0)
 
-    pivot = pivot.fillna(0)
+    pivot = pivot.applymap(eur)
 
-    pivot = pivot.sort_index()
-
-    pivot = pivot.applymap(lambda x: eur(x))
-
-    st.dataframe(pivot, use_container_width=True)
+    st.dataframe(pivot,use_container_width=True)
 
 
 
