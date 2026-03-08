@@ -759,21 +759,19 @@ def main():
 
     st.markdown(
         """
-        <div class="hero">
-            <div class="hero-kicker">Bestuursomgeving • Privacy-veilige rapportage</div>
-            <div class="hero-title">Donateur Intelligence Platform</div>
-            
+        
+<div class="hero">
+    <div class="hero-kicker">Bestuursomgeving • Privacy-veilige rapportage</div>
+    <div class="hero-title">Donateur Intelligence Platform</div>
+    <div class="hero-sub">
+        Dit dashboard geeft bestuurlijke inzichten in de ontwikkeling van donaties en de donateurbasis op basis van geanalyseerde banktransacties.
+        De rapportage toont hoe inkomsten zich ontwikkelen, hoeveel unieke donateurs actief zijn en hoe retentie en uitstroom binnen de donateurbasis verlopen.
 
-<div class="hero-sub">
-Dit dashboard geeft bestuurlijke inzichten in de ontwikkeling van donaties en de donateurbasis op basis van geanalyseerde banktransacties.
-De rapportage toont hoe inkomsten zich ontwikkelen, hoeveel unieke donateurs actief zijn en hoe retentie en uitstroom binnen de donateurbasis verlopen.
-
-Alle analyses zijn volledig geanonimiseerd: namen en IBAN-nummers zijn niet zichtbaar.
-De rapportage dient als stuurinformatie voor bestuur en management om financiële ontwikkeling, donateurgedrag en risico’s in de inkomstenbasis te monitoren.
+        Alle analyses zijn volledig geanonimiseerd: namen en IBAN-nummers zijn niet zichtbaar.
+        De rapportage dient als stuurinformatie voor bestuur en management om financiële ontwikkeling, donateurgedrag en risico’s in de inkomstenbasis te monitoren.
+    </div>
 </div>
 
-
-        </div>
         """,
         unsafe_allow_html=True,
     )
