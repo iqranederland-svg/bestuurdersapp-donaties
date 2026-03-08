@@ -417,7 +417,19 @@ def render_donor_health(data):
 def render_dashboard_tab(data):
     meta = load_current_period_meta()
     fin = load_financial_summary()
+    
+standdatum = meta.get("standdatum")
+if standdatum:
+    period_text = "januari 2023 t/m " + pd.to_datetime(standdatum).strftime("%d-%m-%Y")
+else:
+    
+standdatum = meta.get("standdatum")
+if standdatum:
+    period_text = "januari 2023 t/m " + pd.to_datetime(standdatum).strftime("%d-%m-%Y")
+else:
     period_text = str(meta.get("period_label", "gekozen periode"))
+
+
 
     totals = fin.get("totals", {})
     donor_metrics = fin.get("donor_metrics", {})
@@ -762,7 +774,14 @@ def render_financial_tab(data):
 
 def render_generate_tab():
     section_header("Nieuwe rapportage genereren", "Upload een nieuw CSV bankbestand en laat de rapportage opnieuw opbouwen")
-    uploaded_file = st.file_uploader("Upload nieuw CSV bankbestand", type=["csv"])
+    
+standdatum = st.date_input(
+    "Standdatum rapportage",
+    help="Datum tot en met wanneer de rapportage moet lopen"
+)
+
+uploaded_file = st.file_uploader(
+"Upload nieuw CSV bankbestand", type=["csv"])
     if uploaded_file:
         csv_path = RAW_DIR / "upload_temp.csv"
         RAW_DIR.mkdir(parents=True, exist_ok=True)
