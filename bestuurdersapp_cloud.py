@@ -812,6 +812,7 @@ def chart_grouped_income_mix(yearly_rows):
 
 
 
+
 def render_ramadan_tab(data):
     section_header("Ramadan analyse", "Donaties tijdens Ramadan en detail van de laatste 12 dagen")
 
@@ -847,7 +848,8 @@ def render_ramadan_tab(data):
     tx = tx[tx["amount"] > 0].copy()
 
     totals = []
-    details = {}
+    details_last12 = {}
+    details_full = {}
 
     for year, (start_s, end_s) in ramadan_periods.items():
         start_dt = pd.Timestamp(start_s)
@@ -861,23 +863,30 @@ def render_ramadan_tab(data):
             "Transacties": int(len(df)),
         })
 
+        full_day = (
+            df.assign(Datum=df["date"].dt.normalize())
+            .groupby("Datum", as_index=False)["amount"]
+            .sum()
+            .rename(columns={"amount": "Totaal"})
+            .sort_values("Datum")
+            .reset_index(drop=True)
+        ) if len(df) else pd.DataFrame(columns=["Datum", "Totaal"])
+
+        details_full[year] = full_day
+
         last12_start = end_dt - pd.Timedelta(days=11)
         df12 = df[(df["date"] >= last12_start) & (df["date"] <= end_dt)].copy()
 
-        if len(df12) == 0:
-            details[year] = pd.DataFrame(columns=["Datum", "Totaal"])
-            continue
-
-        per_day = (
+        last12_day = (
             df12.assign(Datum=df12["date"].dt.normalize())
             .groupby("Datum", as_index=False)["amount"]
             .sum()
             .rename(columns={"amount": "Totaal"})
             .sort_values("Datum")
             .reset_index(drop=True)
-        )
+        ) if len(df12) else pd.DataFrame(columns=["Datum", "Totaal"])
 
-        details[year] = per_day
+        details_last12[year] = last12_day
 
     totals_df = pd.DataFrame(totals)
 
@@ -898,31 +907,38 @@ def render_ramadan_tab(data):
     totals_show = fmt_int_cols(totals_show, ["Transacties"])
     st.dataframe(totals_show, use_container_width=True, hide_index=True)
 
-    section_header("Laatste 12 dagen van Ramadan", "Overzicht per jaar met uitklapbaar dagdetail")
+    section_header("Laatste 12 dagen van Ramadan", "Zichtbare tabel = laatste 12 dagen • uitklapbaar = hele Ramadan")
 
     for yr in [2023, 2024, 2025, 2026]:
         subsection(f"Ramadan {yr}")
 
-        detail = details.get(yr, pd.DataFrame(columns=["Datum", "Totaal"])).copy()
+        detail12 = details_last12.get(yr, pd.DataFrame(columns=["Datum", "Totaal"])).copy()
+        detail_full = details_full.get(yr, pd.DataFrame(columns=["Datum", "Totaal"])).copy()
 
-        if detail.empty:
+        if detail12.empty:
             st.info(f"Geen transacties gevonden in de laatste 12 dagen van Ramadan {yr}.")
             continue
 
-        totaal_12 = float(detail["Totaal"].sum())
+        totaal_12 = float(detail12["Totaal"].sum())
 
         st.markdown(
             f"<div class='summary'><strong>Totaal laatste 12 dagen:</strong> {eur(totaal_12)}</div>",
             unsafe_allow_html=True,
         )
 
-        overview = detail.copy()
+        overview = detail12.copy()
         overview["Datum"] = pd.to_datetime(overview["Datum"], errors="coerce").dt.strftime("%d-%m-%Y")
         overview = fmt_money_cols(overview, ["Totaal"])
         st.dataframe(overview, use_container_width=True, hide_index=True)
 
         with st.expander(f"Bekijk detail per dag Ramadan {yr}", expanded=False):
-            st.dataframe(overview, use_container_width=True, hide_index=True)
+            if detail_full.empty:
+                st.info(f"Geen transacties gevonden tijdens Ramadan {yr}.")
+            else:
+                full_show = detail_full.copy()
+                full_show["Datum"] = pd.to_datetime(full_show["Datum"], errors="coerce").dt.strftime("%d-%m-%Y")
+                full_show = fmt_money_cols(full_show, ["Totaal"])
+                st.dataframe(full_show, use_container_width=True, hide_index=True)
 
 def main():
     inject_css()
