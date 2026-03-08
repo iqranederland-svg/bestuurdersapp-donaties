@@ -1167,5 +1167,62 @@ def render_ramadan_tab(data):
         else:
             st.info(f"Geen transacties gevonden in de laatste 12 dagen van Ramadan {yr}.")
 
+def main():
+    inject_css()
+    pdf = newest("bestuursrapport_donaties_v5_*.pdf")
+    excel = newest("donateur_intelligence_v5_*.xlsx")
+
+    st.markdown(
+        """
+        <div class="hero">
+            <div class="hero-kicker">Bestuursomgeving • Donatieanalyse</div>
+            <div class="hero-title">Donaties & Donateurs Dashboard</div>
+            <div class="hero-sub">
+                Dit dashboard geeft bestuurlijke inzichten in de ontwikkeling van donaties en de donateurbasis op basis van geanalyseerde banktransacties.
+                De rapportage toont hoe inkomsten zich ontwikkelen, hoeveel unieke donateurs actief zijn en hoe retentie en uitstroom binnen de donateurbasis verlopen.
+                <br><br>
+                Alle analyses zijn volledig geanonimiseerd: namen en IBAN-nummers zijn niet zichtbaar.
+                De rapportage dient als stuurinformatie voor bestuur en management om financiële ontwikkeling, donateurgedrag en risico’s in de inkomstenbasis te monitoren.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    data = load_data()
+    if data is None:
+        st.warning("Nog geen publieke dataset gevonden.")
+        st.stop()
+
+    tabs = st.tabs([
+        "Dashboard",
+        "Donateursbasis",
+        "Retentie & uitstroom",
+        "Financieel overzicht",
+        "Ramadan analyse",
+        "Rapport genereren",
+        "Downloads",
+    ])
+
+    with tabs[0]:
+        render_dashboard_tab(data)
+
+    with tabs[1]:
+        render_donors_tab(data)
+
+    with tabs[2]:
+        render_retention_tab(data)
+
+    with tabs[3]:
+        render_financial_tab(data)
+
+    with tabs[4]:
+        render_ramadan_tab(data)
+
+    with tabs[5]:
+        render_generate_tab()
+
+    with tabs[6]:
+        render_downloads_tab()
 
 main()
