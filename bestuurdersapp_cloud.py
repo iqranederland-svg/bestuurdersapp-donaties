@@ -808,9 +808,11 @@ def chart_grouped_income_mix(yearly_rows):
 
 
 
+
+
 def render_ramadan_tab(data):
 
-    section_header("Ramadan analyse", "Eenmalige donaties tijdens Ramadan")
+    section_header("Ramadan analyse", "Donaties tijdens Ramadan en detail van de laatste 12 dagen")
 
     ramadan_periods = {
         2023: ("2023-03-21","2023-04-22"),
@@ -822,7 +824,7 @@ def render_ramadan_tab(data):
     tx = data["transactions"].copy()
 
     if "Datum" not in tx.columns or "Bedrag" not in tx.columns:
-        st.error("Kolommen 'Datum' of 'Bedrag' ontbreken in transacties")
+        st.error("Kolommen Datum of Bedrag ontbreken in transacties")
         st.write(tx.columns)
         return
 
@@ -832,7 +834,7 @@ def render_ramadan_tab(data):
     tx = tx.dropna(subset=["date","amount"])
 
     totals = []
-    last12 = []
+    details = {}
 
     for year,(start,end) in ramadan_periods.items():
 
@@ -843,150 +845,77 @@ def render_ramadan_tab(data):
 
         totals.append({
             "Jaar":year,
-            "Bedrag":df["amount"].sum()
+            "Bedrag":df["amount"].sum(),
+            "Transacties":len(df)
         })
 
         last12_start = end - pd.Timedelta(days=11)
 
         df12 = df[(df["date"]>=last12_start) & (df["date"]<=end)]
 
-        per_day = df12.groupby(df12["date"].dt.date)["amount"].sum().reset_index()
-        per_day["Jaar"]=year
+        per_day = (
+            df12.groupby(df12["date"].dt.date)["amount"]
+            .sum()
+            .reset_index()
+        )
 
-        last12.append(per_day)
+        per_day.columns = ["Datum","Totaal"]
+
+        per_day["Datum"] = pd.to_datetime(per_day["Datum"])
+
+        details[year] = per_day.sort_values("Datum")
 
     totals = pd.DataFrame(totals)
 
-    section_header("Totaal donaties per Ramadan")
+    section_header("Totaal per Ramadanjaar")
 
-    st.pyplot(
-        chart_bar_custom(
-            totals,
-            "Jaar",
-            "Bedrag",
-            "Totale donaties tijdens Ramadan",
-            kind="eur"
-        ),
-        use_container_width=True
-    )
+    c1,c2,c3,c4 = st.columns(4)
+
+    cols = [c1,c2,c3,c4]
+
+    for i,row in totals.iterrows():
+        with cols[i]:
+            kpi_card(
+                f"Ramadan {int(row['Jaar'])}",
+                eur(row["Bedrag"]),
+                f"{i0(row['Transacties'])} transacties"
+            )
+
+    totals_show = totals.copy()
+    totals_show = fmt_year_cols(totals_show,["Jaar"])
+    totals_show = fmt_money_cols(totals_show,["Bedrag"])
+    totals_show = fmt_int_cols(totals_show,["Transacties"])
+
+    st.dataframe(totals_show,use_container_width=True,hide_index=True)
 
     section_header("Laatste 12 dagen van Ramadan")
 
-    last12 = pd.concat(last12)
+    for year in [2023,2024,2025,2026]:
 
-    pivot = last12.pivot(index="date",columns="Jaar",values="amount").fillna(0)
+        subsection(f"Ramadan {year}")
 
-    pivot = pivot.applymap(eur)
+        df = details.get(year,pd.DataFrame())
 
-    st.dataframe(pivot,use_container_width=True)
+        if len(df)==0:
+            st.info("Geen transacties gevonden")
+            continue
 
+        totaal = df["Totaal"].sum()
 
-
-def main():
-    inject_css()
-    pdf = newest("bestuursrapport_donaties_v5_*.pdf")
-    excel = newest("donateur_intelligence_v5_*.xlsx")
-
-    st.markdown(
-        """
-        <div class="hero">
-            <div class="hero-kicker">Bestuursomgeving • Privacy-veilige rapportage</div>
-            <div class="hero-title">Donateur Intelligence Platform</div>
-            <div class="hero-info">
-                <p>Dit dashboard geeft bestuurlijke inzichten in de ontwikkeling van donaties en de donateurbasis op basis van geanalyseerde banktransacties. De rapportage toont hoe inkomsten zich ontwikkelen, hoeveel unieke donateurs actief zijn en hoe retentie en uitstroom binnen de donateurbasis verlopen.</p>
-                <p>Alle analyses zijn volledig geanonimiseerd: namen en IBAN-nummers zijn niet zichtbaar. De rapportage dient als stuurinformatie voor bestuur en management om financiële ontwikkeling, donateurgedrag en risico’s in de inkomstenbasis te monitoren.</p>
-
-
-        """,
-        unsafe_allow_html=True,
-    )
-
-    
-    data = load_data()
-    if data is None:
-        st.warning("Nog geen publieke dataset gevonden.")
-        st.stop()
-
-    tabs = st.tabs(["Dashboard", "Donateursbasis", "Retentie & uitstroom", "Financieel overzicht", "Ramadan analyse", "Rapport genereren", "Downloads"])
-
-    with tabs[0]:
-        render_dashboard_tab(data)
-
-    with tabs[1]:
-        render_donors_tab(data)
-
-    with tabs[2]:
-        render_retention_tab(data)
-
-    with tabs[3]:
-        render_financial_tab(data)
-
-    with tabs[4]:
-        render_ramadan_tab(data)
-
-    with tabs[5]:
-        render_generate_tab()
-
-    with tabs[6]:
-        render_downloads_tab()
-
-def chart_grouped_income_mix(yearly_rows):
-    df = pd.DataFrame(yearly_rows)
-    if len(df) == 0:
-        return None
-
-    years = df["Jaar"].astype(str).tolist()
-    eenmalig = pd.to_numeric(df["Eenmalige donaties"], errors="coerce").fillna(0).tolist()
-    periodiek = pd.to_numeric(df["Periodieke donaties"], errors="coerce").fillna(0).tolist()
-
-    x = list(range(len(years)))
-    width = 0.34
-
-    fig, ax = plt.subplots(figsize=(7.2, 4.2))
-    bars1 = ax.bar([i - width / 2 for i in x], eenmalig, width=width, label="Eenmalig", color="#1F5D8B")
-    bars2 = ax.bar([i + width / 2 for i in x], periodiek, width=width, label="Periodiek", color="#5B8DB8")
-
-    ymax = max(eenmalig + periodiek) if (eenmalig + periodiek) else 0
-    offset = (0.02 * ymax) if ymax > 0 else 0.2
-
-    for rect, val in zip(bars1, eenmalig):
-        ax.text(
-            rect.get_x() + rect.get_width() / 2,
-            rect.get_height() + offset,
-            eur(val),
-            ha="center",
-            va="bottom",
-            fontsize=9,
-            fontweight="bold",
-            color="#0F2747",
+        st.markdown(
+            f"<div class='summary'><strong>Totaal laatste 12 dagen:</strong> {eur(totaal)}</div>",
+            unsafe_allow_html=True
         )
 
-    for rect, val in zip(bars2, periodiek):
-        ax.text(
-            rect.get_x() + rect.get_width() / 2,
-            rect.get_height() + offset,
-            eur(val),
-            ha="center",
-            va="bottom",
-            fontsize=9,
-            fontweight="bold",
-            color="#0F2747",
-        )
+        df_show = df.copy()
+        df_show["Datum"] = df_show["Datum"].dt.strftime("%d-%m-%Y")
+        df_show = fmt_money_cols(df_show,["Totaal"])
 
-    ax.set_xticks(x)
-    ax.set_xticklabels(years)
-    ax.set_title("Eenmalig vs periodiek per jaar", fontsize=14, fontweight="bold", pad=12, color="#0F2747")
-    ax.grid(axis="y", alpha=0.15)
-    ax.set_axisbelow(True)
-    ax.tick_params(axis="x", labelsize=10)
-    ax.tick_params(axis="y", labelsize=10)
-    ax.legend(frameon=False, ncol=2, loc="upper left")
+        st.dataframe(df_show,use_container_width=True,hide_index=True)
 
-    for spine in ["top", "right"]:
-        ax.spines[spine].set_visible(False)
+        with st.expander("Bekijk detail per dag"):
+            st.dataframe(df_show,use_container_width=True,hide_index=True)
 
-    fig.tight_layout()
-    return fig
 
 
 def render_dashboard_tab(data):
