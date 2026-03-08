@@ -418,16 +418,13 @@ def render_dashboard_tab(data):
     meta = load_current_period_meta()
     fin = load_financial_summary()
     
-standdatum = meta.get("standdatum")
-if standdatum:
-    period_text = "januari 2023 t/m " + pd.to_datetime(standdatum).strftime("%d-%m-%Y")
-else:
-    
+
 standdatum = meta.get("standdatum")
 if standdatum:
     period_text = "januari 2023 t/m " + pd.to_datetime(standdatum).strftime("%d-%m-%Y")
 else:
     period_text = str(meta.get("period_label", "gekozen periode"))
+
 
 
 
@@ -772,31 +769,57 @@ def render_financial_tab(data):
         section_header("Jaaroverzicht resultaat", "Overzicht van inkomsten, uitgaven en netto resultaat per jaar binnen de gekozen periode")
         st.dataframe(jaar_tabel, use_container_width=True, hide_index=True)
 
+
 def render_generate_tab():
     section_header("Nieuwe rapportage genereren", "Upload een nieuw CSV bankbestand en laat de rapportage opnieuw opbouwen")
-    
-standdatum = st.date_input(
-    "Standdatum rapportage",
-    help="Datum tot en met wanneer de rapportage moet lopen"
-)
 
-uploaded_file = st.file_uploader(
-"Upload nieuw CSV bankbestand", type=["csv"])
+    standdatum = st.date_input(
+        "Standdatum rapportage",
+        help="Datum tot en met wanneer de rapportage moet lopen"
+    )
+
+    uploaded_file = st.file_uploader("Upload nieuw CSV bankbestand", type=["csv"])
+
     if uploaded_file:
         csv_path = RAW_DIR / "upload_temp.csv"
         RAW_DIR.mkdir(parents=True, exist_ok=True)
+
         with open(csv_path, "wb") as f:
             f.write(uploaded_file.getbuffer())
+
         st.success("CSV geüpload")
+
         if st.button("Genereer bestuursrapport"):
-            result = subprocess.run([sys.executable, "run_donateur_intelligence_v5.py", str(csv_path)], capture_output=True, text=True)
+            result = subprocess.run(
+                [sys.executable, "run_donateur_intelligence_v5.py", str(csv_path)],
+                capture_output=True,
+                text=True
+            )
+
             if result.returncode == 0:
+                meta_file = OUTPUT_DIR / "current_period.json"
+
+                meta = {}
+                if meta_file.exists():
+                    try:
+                        meta = json.loads(meta_file.read_text(encoding="utf-8"))
+                    except Exception:
+                        meta = {}
+
+                meta["standdatum"] = standdatum.isoformat()
+
+                try:
+                    meta_file.write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
+                except Exception:
+                    pass
+
                 st.success("Nieuw rapport gegenereerd")
-                st.code(result.stdout)
+                if result.stdout:
+                    st.code(result.stdout)
             else:
                 st.error("Fout bij genereren rapport")
-                st.code(result.stderr)
-
+                if result.stderr:
+                    st.code(result.stderr)
 
 def render_downloads_tab():
     section_header("Downloads")
