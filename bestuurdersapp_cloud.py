@@ -799,6 +799,86 @@ def chart_grouped_income_mix(yearly_rows):
 
 
 
+
+
+# -------------------------------
+# RAMADAN ANALYSE
+# -------------------------------
+
+def render_ramadan_tab(data):
+
+    section_header("Ramadan analyse", "Eenmalige donaties tijdens Ramadan")
+
+    ramadan_periods = {
+        2023: ("2023-03-21","2023-04-22"),
+        2024: ("2024-03-09","2024-04-10"),
+        2025: ("2025-02-27","2025-03-30"),
+        2026: ("2026-02-17","2026-03-20"),
+    }
+
+    tx = data["transactions"].copy()
+
+    tx["date"] = pd.to_datetime(tx["date"], errors="coerce")
+    tx["amount"] = pd.to_numeric(tx["amount"], errors="coerce")
+
+    ramadan_totals = []
+    last12_rows = []
+
+    for year,(start,end) in ramadan_periods.items():
+
+        start = pd.to_datetime(start)
+        end = pd.to_datetime(end)
+
+        df = tx[(tx["date"]>=start) & (tx["date"]<=end)]
+
+        total = df["amount"].sum()
+
+        ramadan_totals.append({
+            "Jaar":year,
+            "Totaal":total
+        })
+
+        last12_start = end - pd.Timedelta(days=11)
+
+        last12 = df[(df["date"]>=last12_start) & (df["date"]<=end)]
+
+        per_day = last12.groupby(last12["date"].dt.date)["amount"].sum().reset_index()
+
+        per_day["Jaar"]=year
+
+        last12_rows.append(per_day)
+
+    ramadan_totals = pd.DataFrame(ramadan_totals)
+
+    section_header("Totaal eenmalige donaties per Ramadan")
+
+    st.pyplot(
+        chart_bar_custom(
+            ramadan_totals,
+            "Jaar",
+            "Totaal",
+            "Totaal eenmalige donaties tijdens Ramadan",
+            kind="eur"
+        ),
+        use_container_width=True
+    )
+
+    section_header("Laatste 12 dagen van Ramadan")
+
+    last12 = pd.concat(last12_rows)
+
+    pivot = last12.pivot(index="date",columns="Jaar",values="amount")
+
+    pivot = pivot.fillna(0)
+
+    pivot = pivot.sort_index()
+
+    pivot = pivot.applymap(lambda x: eur(x))
+
+    st.dataframe(pivot, use_container_width=True)
+
+
+
 def main():
     inject_css()
     pdf = newest("bestuursrapport_donaties_v5_*.pdf")
@@ -824,7 +904,7 @@ def main():
         st.warning("Nog geen publieke dataset gevonden.")
         st.stop()
 
-    tabs = st.tabs(["Dashboard", "Donateursbasis", "Retentie & uitstroom", "Financieel overzicht", "Rapport genereren", "Downloads"])
+    tabs = st.tabs(["Dashboard", "Donateursbasis", "Retentie & uitstroom", "Financieel overzicht", "Ramadan analyse", "Rapport genereren", "Downloads"])
 
     with tabs[0]:
         render_dashboard_tab(data)
@@ -839,9 +919,12 @@ def main():
         render_financial_tab(data)
 
     with tabs[4]:
-        render_generate_tab()
+        render_ramadan_tab(data)
 
     with tabs[5]:
+        render_generate_tab()
+
+    with tabs[6]:
         render_downloads_tab()
 
 def chart_grouped_income_mix(yearly_rows):
