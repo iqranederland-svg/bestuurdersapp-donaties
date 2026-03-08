@@ -183,6 +183,9 @@ div[data-testid="stMetric"]{background:white;border:1px solid #E5EAF2;padding:14
 .hero-metric-value{font-size:30px;font-weight:800;line-height:1.0;}
 .hero-metric-sub{font-size:12px;opacity:0.76;margin-top:8px;line-height:1.4;}
 .small-note{font-size:12px;color:#667085;line-height:1.5;}
+.hero-info{background:white;border:1px solid #E5EAF2;border-radius:18px;padding:18px 20px;margin-top:18px;box-shadow:0 8px 22px rgba(15,39,71,0.05);}
+.hero-info p{margin:0 0 10px 0;color:#374151;line-height:1.7;font-size:15px;}
+.hero-info p:last-child{margin-bottom:0;}
 </style>
         """,
         unsafe_allow_html=True,
@@ -210,7 +213,7 @@ def kpi_card(title: str, value: str, subtitle: str = ""):
             <div class="kpi-title">{title}</div>
             <div class="kpi-value">{value}</div>
             <div class="kpi-sub">{subtitle}</div>
-        </div>
+
         """,
         unsafe_allow_html=True,
     )
@@ -759,18 +762,13 @@ def main():
 
     st.markdown(
         """
-        
-<div class="hero">
-    <div class="hero-kicker">Bestuursomgeving • Privacy-veilige rapportage</div>
-    <div class="hero-title">Donateur Intelligence Platform</div>
-    <div class="hero-sub">
-        Dit dashboard geeft bestuurlijke inzichten in de ontwikkeling van donaties en de donateurbasis op basis van geanalyseerde banktransacties.
-        De rapportage toont hoe inkomsten zich ontwikkelen, hoeveel unieke donateurs actief zijn en hoe retentie en uitstroom binnen de donateurbasis verlopen.
+        <div class="hero">
+            <div class="hero-kicker">Bestuursomgeving • Privacy-veilige rapportage</div>
+            <div class="hero-title">Donateur Intelligence Platform</div>
+            <div class="hero-info">
+                <p>Dit dashboard geeft bestuurlijke inzichten in de ontwikkeling van donaties en de donateurbasis op basis van geanalyseerde banktransacties. De rapportage toont hoe inkomsten zich ontwikkelen, hoeveel unieke donateurs actief zijn en hoe retentie en uitstroom binnen de donateurbasis verlopen.</p>
+                <p>Alle analyses zijn volledig geanonimiseerd: namen en IBAN-nummers zijn niet zichtbaar. De rapportage dient als stuurinformatie voor bestuur en management om financiële ontwikkeling, donateurgedrag en risico’s in de inkomstenbasis te monitoren.</p>
 
-        Alle analyses zijn volledig geanonimiseerd: namen en IBAN-nummers zijn niet zichtbaar.
-        De rapportage dient als stuurinformatie voor bestuur en management om financiële ontwikkeling, donateurgedrag en risico’s in de inkomstenbasis te monitoren.
-    </div>
-</div>
 
         """,
         unsafe_allow_html=True,
