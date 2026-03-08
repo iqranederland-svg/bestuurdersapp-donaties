@@ -1500,5 +1500,70 @@ def render_dashboard_tab(data):
             st.pyplot(chart_bar_custom(donor_year_df, "Jaar", "Unieke_bankdonateurs", "Aantal unieke donateurs per jaar"), use_container_width=True)
 
 
+
+# OVERRIDE_RETENTION_EXIT_V2
+def render_retention_tab(data):
+    meta = load_current_period_meta()
+    fin = load_financial_summary()
+    period_text = str(meta.get("period_label", "gekozen periode"))
+    exit_metrics = fin.get("exit_metrics", {})
+    exit_summary = fin.get("exit_summary", [])
+
+    section_header("Retentie & uitstroom", "Uitstroom op basis van unieke donor-ID = IBAN • " + period_text)
+
+    current_year = int(exit_metrics.get("huidig_jaar", 2026) or 2026)
+    structureel = int(exit_metrics.get("structureel_uitgestroomd", 0) or 0)
+    not_current = int(exit_metrics.get("niet_gedoneerd_huidig_jaar", 0) or 0)
+    last_prev_year = int(exit_metrics.get("laatste_donatie_vorig_jaar", 0) or 0)
+
+    c1, c2 = st.columns(2)
+    with c1:
+        kpi_card("Structureel uitgestroomd", i0(structureel), f"laatste donatie vóór {current_year - 1}")
+    with c2:
+        kpi_card(
+            f"Nog niet gedoneerd in {current_year}",
+            i0(not_current),
+            f"waarvan {i0(last_prev_year)} laatste donatie in {current_year - 1}",
+        )
+
+    section_header("Uitstroom samenvatting")
+    st.markdown(
+        "<div class='info-box'>"
+        f"Deze tabel is gebaseerd op unieke donor-ID = IBAN. Eén IBAN telt als één donor, ook als deze donor meerdere keren heeft gedoneerd. "
+        f"De rij met laatste actieve jaar {current_year - 1} betreft een voorlopige risicogroep die in het huidige jaar nog kan terugkeren."
+        "</div>",
+        unsafe_allow_html=True,
+    )
+
+    if exit_summary:
+        exit_df = pd.DataFrame(exit_summary).copy()
+        if "Aantal_donateurs" in exit_df.columns:
+            exit_df["Aantal donateurs"] = exit_df["Aantal_donateurs"].apply(i0)
+            exit_df = exit_df.drop(columns=["Aantal_donateurs"])
+        if "Totaal_bedrag_van_deze_groep" in exit_df.columns:
+            exit_df["Totaal bedrag van deze groep"] = exit_df["Totaal_bedrag_van_deze_groep"].apply(eur)
+            exit_df = exit_df.drop(columns=["Totaal_bedrag_van_deze_groep"])
+        if "Totaal_transacties_van_deze_groep" in exit_df.columns:
+            exit_df["Totaal transacties van deze groep"] = exit_df["Totaal_transacties_van_deze_groep"].apply(i0)
+            exit_df = exit_df.drop(columns=["Totaal_transacties_van_deze_groep"])
+        st.dataframe(exit_df, use_container_width=True, hide_index=True)
+    else:
+        st.info("Geen uitstroomgegevens beschikbaar.")
+
+    retention_df = None
+    for key in ["retention", "yoy_retention", "retentie"]:
+        if key in data and data[key] is not None:
+            try:
+                if len(data[key]):
+                    retention_df = data[key].copy()
+                    break
+            except Exception:
+                pass
+
+    if retention_df is not None:
+        section_header("Jaar-op-jaar retentie")
+        st.dataframe(retention_df, use_container_width=True, hide_index=True)
+
+
 if __name__ == "__main__":
     main()
