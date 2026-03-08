@@ -813,6 +813,7 @@ def chart_grouped_income_mix(yearly_rows):
 
 
 
+
 def render_ramadan_tab(data):
     section_header("Ramadan analyse", "Donaties tijdens Ramadan en detail van de laatste 12 dagen")
 
@@ -915,18 +916,17 @@ def render_ramadan_tab(data):
         detail12 = details_last12.get(yr, pd.DataFrame(columns=["Datum", "Totaal"])).copy()
         detail_full = details_full.get(yr, pd.DataFrame(columns=["Datum", "Totaal"])).copy()
 
-        if detail12.empty:
-            st.info(f"Geen transacties gevonden in de laatste 12 dagen van Ramadan {yr}.")
-            continue
-
-        totaal_12 = float(detail12["Totaal"].sum())
-totaal_ramadan = float(detail_full["Totaal"].sum()) if not detail_full.empty else 0
+        totaal_ramadan = float(detail_full["Totaal"].sum()) if not detail_full.empty else 0.0
+        totaal_12 = float(detail12["Totaal"].sum()) if not detail12.empty else 0.0
 
         st.markdown(
             f"<div class='summary'><strong>Totaal Ramadan:</strong> {eur(totaal_ramadan)}<br><strong>Totaal laatste 12 dagen:</strong> {eur(totaal_12)}</div>",
-        st.markdown(f"<div class='summary'><strong>Totaal Ramadan:</strong> {eur(detail_full['Totaal'].sum() if not detail_full.empty else 0)}</div>", unsafe_allow_html=True)
             unsafe_allow_html=True,
         )
+
+        if detail12.empty:
+            st.info(f"Geen transacties gevonden in de laatste 12 dagen van Ramadan {yr}.")
+            continue
 
         overview = detail12.copy()
         overview["Datum"] = pd.to_datetime(overview["Datum"], errors="coerce").dt.strftime("%d-%m-%Y")
