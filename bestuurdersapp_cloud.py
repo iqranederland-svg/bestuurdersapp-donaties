@@ -755,6 +755,50 @@ def render_downloads_tab():
     st.markdown('<div class="summary">Deze omgeving bevat geen namen, geen IBAN en geen interne mapping. Alleen publieke, geanonimiseerde rapportages worden hier getoond.</div>', unsafe_allow_html=True)
 
 
+
+
+def chart_grouped_income_mix(yearly_rows):
+    import pandas as pd
+    import matplotlib.pyplot as plt
+
+    df = pd.DataFrame(yearly_rows)
+    if len(df) == 0:
+        return None
+
+    years = df["Jaar"].astype(str).tolist()
+    eenmalig = pd.to_numeric(df["Eenmalige donaties"], errors="coerce").fillna(0).tolist()
+    periodiek = pd.to_numeric(df["Periodieke donaties"], errors="coerce").fillna(0).tolist()
+
+    x = range(len(years))
+    width = 0.35
+
+    fig, ax = plt.subplots(figsize=(7,4))
+
+    bars1 = ax.bar([i-width/2 for i in x], eenmalig, width, label="Eenmalig", color="#1F5D8B")
+    bars2 = ax.bar([i+width/2 for i in x], periodiek, width, label="Periodiek", color="#5B8DB8")
+
+    ymax = max(eenmalig + periodiek) if (eenmalig + periodiek) else 0
+
+    for rect, val in zip(bars1, eenmalig):
+        ax.text(rect.get_x()+rect.get_width()/2, rect.get_height()+ymax*0.02, f"€ {int(val):,}".replace(",", "."),
+                ha="center", fontsize=9)
+
+    for rect, val in zip(bars2, periodiek):
+        ax.text(rect.get_x()+rect.get_width()/2, rect.get_height()+ymax*0.02, f"€ {int(val):,}".replace(",", "."),
+                ha="center", fontsize=9)
+
+    ax.set_xticks(list(x))
+    ax.set_xticklabels(years)
+    ax.set_title("Eenmalig vs periodiek per jaar")
+    ax.grid(axis="y", alpha=0.2)
+    ax.legend()
+
+    fig.tight_layout()
+
+    return fig
+
+
+
 def main():
     inject_css()
     pdf = newest("bestuursrapport_donaties_v5_*.pdf")
