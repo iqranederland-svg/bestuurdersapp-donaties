@@ -928,19 +928,53 @@ def render_ramadan_tab(data):
             st.info(f"Geen transacties gevonden in de laatste 12 dagen van Ramadan {yr}.")
             continue
 
-        overview = detail12.copy()
-        overview["Datum"] = pd.to_datetime(overview["Datum"], errors="coerce").dt.strftime("%d-%m-%Y")
-        overview = fmt_money_cols(overview, ["Totaal"])
-        st.dataframe(overview, use_container_width=True, hide_index=True)
+        # tabel laatste 12 dagen (ingeklapt)
+        with st.expander(f"Laatste 12 dagen Ramadan {yr}", expanded=False):
 
-        with st.expander(f"Bekijk detail per dag Ramadan {yr}", expanded=False):
+            overview = detail12.copy()
+            overview["Datum"] = pd.to_datetime(overview["Datum"], errors="coerce").dt.strftime("%d-%m-%Y")
+
+            top2 = overview["Totaal"].nlargest(2).values
+
+            def highlight(val):
+                if val in top2:
+                    return "background-color:#d1fae5"
+                return ""
+
+            styled = overview.style.applymap(
+                highlight,
+                subset=["Totaal"]
+            )
+
+            styled = styled.format({"Totaal": eur})
+
+            st.dataframe(styled, use_container_width=True, hide_index=True)
+
+        # hele Ramadan tabel
+        with st.expander(f"Bekijk alle dagen Ramadan {yr}", expanded=False):
+
             if detail_full.empty:
                 st.info(f"Geen transacties gevonden tijdens Ramadan {yr}.")
             else:
+
                 full_show = detail_full.copy()
                 full_show["Datum"] = pd.to_datetime(full_show["Datum"], errors="coerce").dt.strftime("%d-%m-%Y")
-                full_show = fmt_money_cols(full_show, ["Totaal"])
-                st.dataframe(full_show, use_container_width=True, hide_index=True)
+
+                top2 = full_show["Totaal"].nlargest(2).values
+
+                def highlight(val):
+                    if val in top2:
+                        return "background-color:#d1fae5"
+                    return ""
+
+                styled_full = full_show.style.applymap(
+                    highlight,
+                    subset=["Totaal"]
+                )
+
+                styled_full = styled_full.format({"Totaal": eur})
+
+                st.dataframe(styled_full, use_container_width=True, hide_index=True)
 
 def main():
     inject_css()
