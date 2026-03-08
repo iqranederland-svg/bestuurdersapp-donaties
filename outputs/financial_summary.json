@@ -16,6 +16,16 @@
     "overige_inkomsten": 0.0,
     "totale_donaties": 763972.9099999999
   },
+  "donor_metrics": {
+    "unieke_donors": 5147,
+    "actieve_donors_huidig_jaar": 1216,
+    "nieuwe_donors_huidig_jaar": 577,
+    "structureel_uitgestroomd": 1680,
+    "niet_gedoneerd_huidig_jaar": 3931,
+    "laatste_donatie_vorig_jaar": 2251,
+    "totaal_transacties": 16572,
+    "huidig_jaar": 2026
+  },
   "exit_metrics": {
     "structureel_uitgestroomd": 1680,
     "niet_gedoneerd_huidig_jaar": 3931,
