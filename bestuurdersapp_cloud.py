@@ -810,6 +810,7 @@ def chart_grouped_income_mix(yearly_rows):
 
 
 
+
 def render_ramadan_tab(data):
 
     section_header("Ramadan analyse", "Donaties tijdens Ramadan en detail van de laatste 12 dagen")
@@ -830,7 +831,6 @@ def render_ramadan_tab(data):
 
     tx["date"] = pd.to_datetime(tx["Datum"], errors="coerce", dayfirst=True)
     tx["amount"] = pd.to_numeric(tx["Bedrag"], errors="coerce")
-
     tx = tx.dropna(subset=["date","amount"])
 
     totals = []
@@ -850,18 +850,19 @@ def render_ramadan_tab(data):
         })
 
         last12_start = end - pd.Timedelta(days=11)
-
         df12 = df[(df["date"]>=last12_start) & (df["date"]<=end)]
 
+        if len(df12)==0:
+            details[year] = pd.DataFrame(columns=["Datum","Totaal"])
+            continue
+
         per_day = (
-            df12.groupby(df12["date"].dt.date)["amount"]
+            df12.groupby(df12["date"].dt.normalize())["amount"]
             .sum()
             .reset_index()
         )
 
         per_day.columns = ["Datum","Totaal"]
-
-        per_day["Datum"] = pd.to_datetime(per_day["Datum"])
 
         details[year] = per_day.sort_values("Datum")
 
@@ -870,8 +871,7 @@ def render_ramadan_tab(data):
     section_header("Totaal per Ramadanjaar")
 
     c1,c2,c3,c4 = st.columns(4)
-
-    cols = [c1,c2,c3,c4]
+    cols=[c1,c2,c3,c4]
 
     for i,row in totals.iterrows():
         with cols[i]:
@@ -885,7 +885,6 @@ def render_ramadan_tab(data):
     totals_show = fmt_year_cols(totals_show,["Jaar"])
     totals_show = fmt_money_cols(totals_show,["Bedrag"])
     totals_show = fmt_int_cols(totals_show,["Transacties"])
-
     st.dataframe(totals_show,use_container_width=True,hide_index=True)
 
     section_header("Laatste 12 dagen van Ramadan")
@@ -894,9 +893,9 @@ def render_ramadan_tab(data):
 
         subsection(f"Ramadan {year}")
 
-        df = details.get(year,pd.DataFrame())
+        df = details.get(year)
 
-        if len(df)==0:
+        if df is None or df.empty:
             st.info("Geen transacties gevonden")
             continue
 
@@ -915,6 +914,7 @@ def render_ramadan_tab(data):
 
         with st.expander("Bekijk detail per dag"):
             st.dataframe(df_show,use_container_width=True,hide_index=True)
+
 
 
 
