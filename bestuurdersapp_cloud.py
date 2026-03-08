@@ -1111,7 +1111,10 @@ def render_ramadan_tab(data):
                 .sum()
                 .rename(columns={"date": "Datum", "amount": "Totaal"})
             )
-            detail["Datum"] = pd.to_datetime(detail["Datum"])
+            if "Datum" not in detail.columns and len(detail.columns) > 0:
+            detail = detail.rename(columns={detail.columns[0]: "Datum"})
+        detail["Datum"] = pd.to_datetime(detail["Datum"], errors="coerce")
+        detail = detail.dropna(subset=["Datum"])
             detail = detail.sort_values("Datum").reset_index(drop=True)
             detail["Dag binnen laatste 12"] = range(1, len(detail) + 1)
             details_by_year[year] = detail
