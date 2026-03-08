@@ -18,9 +18,30 @@
   },
   "exit_metrics": {
     "structureel_uitgestroomd": 1680,
-    "niet_gedoneerd_2026": 3931,
-    "laatste_donatie_2025": 2251
+    "niet_gedoneerd_huidig_jaar": 3931,
+    "laatste_donatie_vorig_jaar": 2251,
+    "huidig_jaar": 2026
   },
+  "exit_summary": [
+    {
+      "Laatste actieve jaar": 2023,
+      "Aantal_donateurs": 858,
+      "Totaal_bedrag_van_deze_groep": 60319.88,
+      "Totaal_transacties_van_deze_groep": 1186
+    },
+    {
+      "Laatste actieve jaar": 2024,
+      "Aantal_donateurs": 822,
+      "Totaal_bedrag_van_deze_groep": 51273.6,
+      "Totaal_transacties_van_deze_groep": 1449
+    },
+    {
+      "Laatste actieve jaar": 2025,
+      "Aantal_donateurs": 2251,
+      "Totaal_bedrag_van_deze_groep": 293576.95,
+      "Totaal_transacties_van_deze_groep": 6682
+    }
+  ],
   "yearly": [
     {
       "Jaar": 2023,
