@@ -417,10 +417,15 @@ def render_donor_health(data):
 def render_dashboard_tab(data):
     meta = load_current_period_meta()
     fin = load_financial_summary()
+
+    standdatum = meta.get("standdatum")
+    if standdatum:
+        period_text = "januari 2023 t/m " + pd.to_datetime(standdatum).strftime("%d-%m-%Y")
+    else:
+        period_text = str(meta.get("period_label", "gekozen periode"))
     
 
-else:
-    period_text = str(meta.get("period_label", "gekozen periode"))
+
 
 
 
