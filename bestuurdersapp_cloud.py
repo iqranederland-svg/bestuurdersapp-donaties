@@ -1565,5 +1565,181 @@ def render_retention_tab(data):
         st.dataframe(retention_df, use_container_width=True, hide_index=True)
 
 
+
+# OVERRIDE_IBAN_DONOR_DASHBOARD_V1
+def render_dashboard_tab(data):
+    meta = load_current_period_meta()
+    fin = load_financial_summary()
+    period_text = str(meta.get("period_label", "gekozen periode"))
+
+    totals = fin.get("totals", {})
+    donor_metrics = fin.get("donor_metrics", {})
+    netto_resultaat = float(totals.get("netto_resultaat", 0) or 0)
+    totale_inkomsten = float(totals.get("inkomsten", 0) or 0)
+    totale_uitgaven = float(totals.get("uitgaven", 0) or 0)
+    contant_kas = float(totals.get("contant_kas", meta.get("contant_kas", 0)) or 0)
+    netto_incl_kas = netto_resultaat + contant_kas
+    banksaldo = netto_resultaat
+    periodieke_donaties = float(totals.get("periodieke_donaties", 0) or 0)
+    eenmalige_donaties = float(totals.get("eenmalige_donaties", 0) or 0)
+    overige_inkomsten = float(totals.get("overige_inkomsten", 0) or 0)
+
+    donor_count = int(donor_metrics.get("unieke_donors", 0) or 0)
+    active_count = int(donor_metrics.get("actieve_donors_huidig_jaar", 0) or 0)
+    new_count = int(donor_metrics.get("nieuwe_donors_huidig_jaar", 0) or 0)
+    structureel = int(donor_metrics.get("structureel_uitgestroomd", 0) or 0)
+    not_current = int(donor_metrics.get("niet_gedoneerd_huidig_jaar", 0) or 0)
+    last_prev_year = int(donor_metrics.get("laatste_donatie_vorig_jaar", 0) or 0)
+    total_tx = int(donor_metrics.get("totaal_transacties", 0) or 0)
+    current_year = int(donor_metrics.get("huidig_jaar", 2026) or 2026)
+
+    pareto = data["pareto"].copy()
+    yearly = fin.get("yearly", [])
+
+    top10_pct = 0.0
+    top10_amount = 0.0
+    if len(pareto):
+        top10 = pareto.loc[pareto["Segment"] == "Top 10%"]
+        if len(top10):
+            top10_pct = float(top10["Aandeel_inkomsten_pct"].iloc[0])
+            top10_amount = float(top10["Bedrag"].iloc[0])
+
+    section_header("Management Dashboard", "Alle donor-aantallen op basis van 1 unieke IBAN = 1 donor-ID • " + period_text)
+
+    section_header("Financieel", "Resultaat, saldo, kas en geldstromen")
+    f1, f2, f3 = st.columns(3)
+    with f1:
+        kpi_card("Netto resultaat incl. kas", eur(netto_incl_kas), "netto resultaat + kas")
+    with f2:
+        kpi_card("Banksaldo", eur(banksaldo), "netto resultaat exclusief kas")
+    with f3:
+        kpi_card("Kas", eur(contant_kas), "stand op rapportmoment")
+
+    st.markdown("")
+    f4, f5 = st.columns(2)
+    with f4:
+        kpi_card("Totale inkomsten", eur(totale_inkomsten), "exclusief contant in kas")
+    with f5:
+        kpi_card("Totale uitgaven", eur(totale_uitgaven), period_text)
+
+    section_header("Donateurs", "1 unieke IBAN = 1 donor-ID")
+    d1, d2, d3, d4, d5 = st.columns(5)
+    with d1:
+        kpi_card("Aantal donateurs", i0(donor_count), "unieke IBAN's")
+    with d2:
+        kpi_card("Aantal transacties", i0(total_tx), "totaal aantal donaties")
+    with d3:
+        kpi_card("Actieve donateurs", i0(active_count), f"laatste donatie in {current_year}")
+    with d4:
+        kpi_card("Nieuwe donateurs", i0(new_count), f"eerste donatie in {current_year}")
+    with d5:
+        kpi_card("Top 10% donateurs", eur(top10_amount), pct(top10_pct) + " van totale donaties")
+
+    st.markdown("")
+    d6, d7 = st.columns(2)
+    with d6:
+        kpi_card("Structureel uitgestroomd", i0(structureel), f"laatste donatie vóór {current_year - 1}")
+    with d7:
+        kpi_card(f"Nog niet gedoneerd in {current_year}", i0(not_current), f"waarvan {i0(last_prev_year)} laatste donatie in {current_year - 1}")
+
+    st.markdown("")
+    left, right = st.columns([1, 1])
+
+    with left:
+        section_header("Inkomstenopbouw")
+        income_table = pd.DataFrame([
+            {"Categorie": "Eenmalige donaties", "Bedrag": eenmalige_donaties},
+            {"Categorie": "Periodieke donaties", "Bedrag": periodieke_donaties},
+            {"Categorie": "Overige inkomsten", "Bedrag": overige_inkomsten},
+            {"Categorie": "Totale inkomsten", "Bedrag": totale_inkomsten},
+        ])
+        income_table = fmt_money_cols(income_table, ["Bedrag"])
+        st.dataframe(income_table, use_container_width=True, hide_index=True)
+
+    with right:
+        section_header("Duiding")
+        st.markdown(
+            "<div class='summary'>"
+            f"• Netto resultaat inclusief kas: <strong>{eur(netto_incl_kas)}</strong><br>"
+            f"• Banksaldo: <strong>{eur(banksaldo)}</strong><br>"
+            f"• Donor-aantallen zijn gebaseerd op <strong>{i0(donor_count)}</strong> unieke IBAN's en <strong>{i0(total_tx)}</strong> transacties<br>"
+            "• Contant in kas is apart opgenomen en wordt niet meegenomen in de grafieken."
+            "</div>",
+            unsafe_allow_html=True,
+        )
+
+    section_header("Progressie", "Ontwikkeling van bankinkomsten, inkomstenmix en donateurs • contant niet meegenomen")
+    g1, g2, g3 = st.columns(3)
+
+    yearly_df = pd.DataFrame(yearly) if yearly else pd.DataFrame()
+    if len(yearly_df):
+        if "Jaar" in yearly_df.columns and "Inkomsten" in yearly_df.columns:
+            with g1:
+                st.pyplot(chart_bar_custom(yearly_df, "Jaar", "Inkomsten", "Bankinkomsten per jaar", kind="eur"), use_container_width=True)
+
+        mix_fig = chart_grouped_income_mix(yearly)
+        if mix_fig is not None:
+            with g2:
+                st.pyplot(mix_fig, use_container_width=True)
+
+    donor_year_df = None
+    if "dashboard" in data and data["dashboard"] is not None:
+        try:
+            dash = data["dashboard"].copy()
+            if "Jaar" in dash.columns and "Unieke_bankdonateurs" in dash.columns and len(dash):
+                donor_year_df = dash[["Jaar", "Unieke_bankdonateurs"]].copy()
+        except Exception:
+            donor_year_df = None
+
+    if donor_year_df is not None and len(donor_year_df):
+        with g3:
+            st.pyplot(chart_bar_custom(donor_year_df, "Jaar", "Unieke_bankdonateurs", "Aantal unieke donateurs per jaar"), use_container_width=True)
+
+
+def render_retention_tab(data):
+    meta = load_current_period_meta()
+    fin = load_financial_summary()
+    period_text = str(meta.get("period_label", "gekozen periode"))
+    exit_metrics = fin.get("exit_metrics", {})
+    exit_summary = fin.get("exit_summary", [])
+
+    section_header("Retentie & uitstroom", "Uitstroom op basis van unieke donor-ID = IBAN • " + period_text)
+
+    current_year = int(exit_metrics.get("huidig_jaar", 2026) or 2026)
+    structureel = int(exit_metrics.get("structureel_uitgestroomd", 0) or 0)
+    not_current = int(exit_metrics.get("niet_gedoneerd_huidig_jaar", 0) or 0)
+    last_prev_year = int(exit_metrics.get("laatste_donatie_vorig_jaar", 0) or 0)
+
+    c1, c2 = st.columns(2)
+    with c1:
+        kpi_card("Structureel uitgestroomd", i0(structureel), f"laatste donatie vóór {current_year - 1}")
+    with c2:
+        kpi_card(f"Nog niet gedoneerd in {current_year}", i0(not_current), f"waarvan {i0(last_prev_year)} laatste donatie in {current_year - 1}")
+
+    section_header("Uitstroom samenvatting")
+    st.markdown(
+        "<div class='info-box'>"
+        "Deze tabel is gebaseerd op 1 unieke IBAN = 1 donor-ID. Eén IBAN telt als één donor, ook als die donor meerdere keren heeft gedoneerd. "
+        f"De rij met laatste actieve jaar {current_year - 1} betreft een voorlopige risicogroep die in het huidige jaar nog kan terugkeren."
+        "</div>",
+        unsafe_allow_html=True,
+    )
+
+    if exit_summary:
+        exit_df = pd.DataFrame(exit_summary).copy()
+        if "Aantal_donateurs" in exit_df.columns:
+            exit_df["Aantal donateurs"] = exit_df["Aantal_donateurs"].apply(i0)
+            exit_df = exit_df.drop(columns=["Aantal_donateurs"])
+        if "Totaal_bedrag_van_deze_groep" in exit_df.columns:
+            exit_df["Totaal bedrag van deze groep"] = exit_df["Totaal_bedrag_van_deze_groep"].apply(eur)
+            exit_df = exit_df.drop(columns=["Totaal_bedrag_van_deze_groep"])
+        if "Totaal_transacties_van_deze_groep" in exit_df.columns:
+            exit_df["Totaal transacties van deze groep"] = exit_df["Totaal_transacties_van_deze_groep"].apply(i0)
+            exit_df = exit_df.drop(columns=["Totaal_transacties_van_deze_groep"])
+        st.dataframe(exit_df, use_container_width=True, hide_index=True)
+    else:
+        st.info("Geen uitstroomgegevens beschikbaar.")
+
+
 if __name__ == "__main__":
     main()
