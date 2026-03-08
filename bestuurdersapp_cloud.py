@@ -419,8 +419,6 @@ def render_dashboard_tab(data):
     fin = load_financial_summary()
     
 
-if standdatum:
-    period_text = "januari 2023 t/m " + pd.to_datetime(standdatum).strftime("%d-%m-%Y")
 else:
     period_text = str(meta.get("period_label", "gekozen periode"))
 
