@@ -811,236 +811,7 @@ def chart_grouped_income_mix(yearly_rows):
 
 
 
-def render_ramadan_tab(data):
 
-    section_header("Ramadan analyse", "Donaties tijdens Ramadan en detail van de laatste 12 dagen")
-
-    ramadan_periods = {
-        2023: ("2023-03-21","2023-04-22"),
-        2024: ("2024-03-09","2024-04-10"),
-        2025: ("2025-02-27","2025-03-30"),
-        2026: ("2026-02-17","2026-03-20"),
-    }
-
-    tx = data["transactions"].copy()
-
-    if "Datum" not in tx.columns or "Bedrag" not in tx.columns:
-        st.error("Kolommen Datum of Bedrag ontbreken in transacties")
-        st.write(tx.columns)
-        return
-
-    tx["date"] = pd.to_datetime(tx["Datum"], errors="coerce", dayfirst=True)
-    tx["amount"] = pd.to_numeric(tx["Bedrag"], errors="coerce")
-    tx = tx.dropna(subset=["date","amount"])
-
-    totals = []
-    details = {}
-
-    for year,(start,end) in ramadan_periods.items():
-
-        start = pd.Timestamp(start)
-        end = pd.Timestamp(end)
-
-        df = tx[(tx["date"]>=start) & (tx["date"]<=end)]
-
-        totals.append({
-            "Jaar":year,
-            "Bedrag":df["amount"].sum(),
-            "Transacties":len(df)
-        })
-
-        last12_start = end - pd.Timedelta(days=11)
-        df12 = df[(df["date"]>=last12_start) & (df["date"]<=end)]
-
-        if len(df12)==0:
-            details[year] = pd.DataFrame(columns=["Datum","Totaal"])
-            continue
-
-        per_day = (
-            df12.groupby(df12["date"].dt.normalize())["amount"]
-            .sum()
-            .reset_index()
-        )
-
-        per_day.columns = ["Datum","Totaal"]
-
-        details[year] = per_day.sort_values("Datum")
-
-    totals = pd.DataFrame(totals)
-
-    section_header("Totaal per Ramadanjaar")
-
-    c1,c2,c3,c4 = st.columns(4)
-    cols=[c1,c2,c3,c4]
-
-    for i,row in totals.iterrows():
-        with cols[i]:
-            kpi_card(
-                f"Ramadan {int(row['Jaar'])}",
-                eur(row["Bedrag"]),
-                f"{i0(row['Transacties'])} transacties"
-            )
-
-    totals_show = totals.copy()
-    totals_show = fmt_year_cols(totals_show,["Jaar"])
-    totals_show = fmt_money_cols(totals_show,["Bedrag"])
-    totals_show = fmt_int_cols(totals_show,["Transacties"])
-    st.dataframe(totals_show,use_container_width=True,hide_index=True)
-
-    section_header("Laatste 12 dagen van Ramadan")
-
-    for year in [2023,2024,2025,2026]:
-
-        subsection(f"Ramadan {year}")
-
-        df = details.get(year)
-
-        if df is None or df.empty:
-            st.info("Geen transacties gevonden")
-            continue
-
-        totaal = df["Totaal"].sum()
-
-        st.markdown(
-            f"<div class='summary'><strong>Totaal laatste 12 dagen:</strong> {eur(totaal)}</div>",
-            unsafe_allow_html=True
-        )
-
-        df_show = df.copy()
-        df_show["Datum"] = df_show["Datum"].dt.strftime("%d-%m-%Y")
-        df_show = fmt_money_cols(df_show,["Totaal"])
-
-        st.dataframe(df_show,use_container_width=True,hide_index=True)
-
-        with st.expander("Bekijk detail per dag"):
-            st.dataframe(df_show,use_container_width=True,hide_index=True)
-
-
-
-
-def render_dashboard_tab(data):
-    meta = load_current_period_meta()
-    fin = load_financial_summary()
-    period_text = str(meta.get("period_label", "gekozen periode"))
-
-    totals = fin.get("totals", {})
-    donor_metrics = fin.get("donor_metrics", {})
-    netto_resultaat = float(totals.get("netto_resultaat", 0) or 0)
-    totale_inkomsten = float(totals.get("inkomsten", 0) or 0)
-    totale_uitgaven = float(totals.get("uitgaven", 0) or 0)
-    contant_kas = float(totals.get("contant_kas", meta.get("contant_kas", 0)) or 0)
-    netto_incl_kas = float(totals.get("netto_resultaat_incl_kas", netto_resultaat + contant_kas) or 0)
-    banksaldo = netto_resultaat
-    periodieke_donaties = float(totals.get("periodieke_donaties", 0) or 0)
-    eenmalige_donaties = float(totals.get("eenmalige_donaties", 0) or 0)
-    overige_inkomsten = float(totals.get("overige_inkomsten", 0) or 0)
-
-    donor_count = int(donor_metrics.get("unieke_donors", 0) or 0)
-    active_count = int(donor_metrics.get("actieve_donors_huidig_jaar", 0) or 0)
-    new_count = int(donor_metrics.get("nieuwe_donors_huidig_jaar", 0) or 0)
-    structureel = int(donor_metrics.get("structureel_uitgestroomd", 0) or 0)
-    not_current = int(donor_metrics.get("niet_gedoneerd_huidig_jaar", 0) or 0)
-    last_prev_year = int(donor_metrics.get("laatste_donatie_vorig_jaar", 0) or 0)
-    total_tx = int(donor_metrics.get("totaal_transacties", 0) or 0)
-    current_year = int(donor_metrics.get("huidig_jaar", 2026) or 2026)
-
-    dash = data["dashboard"].copy().sort_values("Jaar")
-    pareto = data["pareto"].copy()
-    yearly = fin.get("yearly", [])
-
-    top10_pct = 0.0
-    top10_amount = 0.0
-    if len(pareto):
-        top10 = pareto.loc[pareto["Segment"] == "Top 10%"]
-        if len(top10):
-            top10_pct = float(top10["Aandeel_inkomsten_pct"].iloc[0])
-            top10_amount = float(top10["Bedrag"].iloc[0])
-
-    section_header("Management Dashboard", "Belangrijkste bestuurscijfers • " + period_text)
-
-    section_header("Financieel", "Resultaat, saldo, kas en geldstromen")
-    f1, f2, f3 = st.columns(3)
-    with f1:
-        kpi_card("Netto resultaat incl. kas", eur(netto_incl_kas), "banksaldo + kas")
-    with f2:
-        kpi_card("Banksaldo", eur(banksaldo), "netto resultaat exclusief kas")
-    with f3:
-        kpi_card("Kas", eur(contant_kas), "stand op rapportmoment")
-
-    st.markdown("")
-    f4, f5 = st.columns(2)
-    with f4:
-        kpi_card("Totale inkomsten", eur(totale_inkomsten), "exclusief contant in kas")
-    with f5:
-        kpi_card("Totale uitgaven", eur(totale_uitgaven), period_text)
-
-    section_header("Donateurs", "Aantallen op basis van unieke donor-IBAN")
-    d1, d2, d3, d4, d5 = st.columns(5)
-    with d1:
-        kpi_card("Aantal donateurs", i0(donor_count), "unieke donor-IBAN's")
-    with d2:
-        kpi_card("Aantal transacties", i0(total_tx), "totaal aantal donortransacties")
-    with d3:
-        kpi_card("Actieve donateurs", i0(active_count), f"laatste donatie in {current_year}")
-    with d4:
-        kpi_card("Nieuwe donateurs", i0(new_count), f"eerste donatie in {current_year}")
-    with d5:
-        kpi_card("Top 10% donateurs", eur(top10_amount), pct(top10_pct) + " van totale donaties")
-
-    st.markdown("")
-    d6, d7 = st.columns(2)
-    with d6:
-        kpi_card("Structureel uitgestroomd", i0(structureel), f"laatste donatie vóór {current_year - 1}")
-    with d7:
-        kpi_card(f"Nog niet gedoneerd in {current_year}", i0(not_current), f"waarvan {i0(last_prev_year)} laatste donatie in {current_year - 1}")
-
-    st.markdown("")
-    left, right = st.columns([1, 1])
-
-    with left:
-        section_header("Inkomstenopbouw")
-        income_table = pd.DataFrame([
-            {"Categorie": "Eenmalige donaties", "Bedrag": eenmalige_donaties},
-            {"Categorie": "Periodieke donaties", "Bedrag": periodieke_donaties},
-            {"Categorie": "Overige inkomsten", "Bedrag": overige_inkomsten},
-            {"Categorie": "Totale inkomsten", "Bedrag": totale_inkomsten},
-        ])
-        income_table = fmt_money_cols(income_table, ["Bedrag"])
-        st.dataframe(income_table, use_container_width=True, hide_index=True)
-
-    with right:
-        section_header("Duiding")
-        st.markdown(
-            "<div class='summary'>"
-            f"• Donor-aantallen zijn gebaseerd op <strong>{i0(donor_count)}</strong> unieke donor-IBAN's<br>"
-            f"• Totaal donortransacties: <strong>{i0(total_tx)}</strong><br>"
-            "• Mollie, Sepay en andere bulkbetalingen tellen wel mee in inkomsten, maar niet in donor-aantallen<br>"
-            "• Contant in kas is apart opgenomen en wordt niet meegenomen in de grafieken."
-            "</div>",
-            unsafe_allow_html=True,
-        )
-
-    section_header("Progressie", "Ontwikkeling van inkomsten en donateurs • contant niet meegenomen")
-    g1, g2, g3 = st.columns(3)
-
-    yearly_df = pd.DataFrame(yearly) if yearly else pd.DataFrame()
-    if len(yearly_df) and "Jaar" in yearly_df.columns and "Inkomsten" in yearly_df.columns:
-        with g1:
-            st.pyplot(chart_bar_custom(yearly_df, "Jaar", "Inkomsten", "Bankinkomsten per jaar", kind="eur"), use_container_width=True)
-
-    mix_fig = chart_grouped_income_mix(yearly)
-    if mix_fig is not None:
-        with g2:
-            st.pyplot(mix_fig, use_container_width=True)
-
-    donor_year_df = dash[["Jaar", "Unieke_bankdonateurs"]].copy() if "Unieke_bankdonateurs" in dash.columns else None
-    if donor_year_df is not None and len(donor_year_df):
-        with g3:
-            st.pyplot(chart_bar_custom(donor_year_df, "Jaar", "Unieke_bankdonateurs", "Aantal unieke donateurs per jaar"), use_container_width=True)
-
-
-
-# OVERRIDE_RAMADAN_TAB_V3
 def render_ramadan_tab(data):
     section_header("Ramadan analyse", "Donaties tijdens Ramadan en detail van de laatste 12 dagen")
 
@@ -1066,109 +837,92 @@ def render_ramadan_tab(data):
             break
 
     if date_col is None or amount_col is None:
-        st.error("Ramadan-analyse kan niet worden opgebouwd: datum- of bedragkolom ontbreekt in de transactiedata.")
-        st.write("Beschikbare kolommen:", list(tx.columns))
+        st.error("Kolommen Datum of Bedrag ontbreken in transacties.")
+        st.write(list(tx.columns))
         return
 
-    tx = tx.copy()
     tx["date"] = pd.to_datetime(tx[date_col], errors="coerce", dayfirst=True)
+    tx["amount"] = pd.to_numeric(tx[amount_col], errors="coerce")
+    tx = tx.dropna(subset=["date", "amount"]).copy()
+    tx = tx[tx["amount"] > 0].copy()
 
-    tx["amount"] = (
-        tx[amount_col]
-        .astype(str)
-        .str.replace("\u00a0", "", regex=False)
-        .str.replace("€", "", regex=False)
-        .str.replace(".", "", regex=False)
-        .str.replace(",", ".", regex=False)
-        .str.strip()
-    )
-    tx["amount"] = pd.to_numeric(tx["amount"], errors="coerce")
-    tx = tx[tx["date"].notna() & tx["amount"].notna()].copy()
-
-    totals_rows = []
-    details_by_year = {}
+    totals = []
+    details = {}
 
     for year, (start_s, end_s) in ramadan_periods.items():
-        start = pd.Timestamp(start_s)
-        end = pd.Timestamp(end_s)
+        start_dt = pd.Timestamp(start_s)
+        end_dt = pd.Timestamp(end_s)
 
-        df = tx[(tx["date"] >= start) & (tx["date"] <= end)].copy()
-        totaal = float(df["amount"].sum()) if len(df) else 0.0
-        aantal_transacties = int(len(df))
+        df = tx[(tx["date"] >= start_dt) & (tx["date"] <= end_dt)].copy()
 
-        totals_rows.append({
+        totals.append({
             "Jaar": year,
-            "Totaal donaties Ramadan": totaal,
-            "Aantal transacties Ramadan": aantal_transacties,
+            "Totaal": float(df["amount"].sum()) if len(df) else 0.0,
+            "Transacties": int(len(df)),
         })
 
-        last12_start = end - pd.Timedelta(days=11)
-        df12 = df[(df["date"] >= last12_start) & (df["date"] <= end)].copy()
+        last12_start = end_dt - pd.Timedelta(days=11)
+        df12 = df[(df["date"] >= last12_start) & (df["date"] <= end_dt)].copy()
 
-        if len(df12):
-            detail = (
-                df12.groupby(df12["date"].dt.date, as_index=False)["amount"]
-                .sum()
-                .rename(columns={"date": "Datum", "amount": "Totaal"})
-            )
-            if "Datum" not in detail.columns and len(detail.columns) > 0:
-            detail = detail.rename(columns={detail.columns[0]: "Datum"})
-        detail["Datum"] = pd.to_datetime(detail["Datum"], errors="coerce")
-        detail = detail.dropna(subset=["Datum"])
-            detail = detail.sort_values("Datum").reset_index(drop=True)
-            detail["Dag binnen laatste 12"] = range(1, len(detail) + 1)
-            details_by_year[year] = detail
-        else:
-            details_by_year[year] = pd.DataFrame(columns=["Datum", "Dag binnen laatste 12", "Totaal"])
+        if len(df12) == 0:
+            details[year] = pd.DataFrame(columns=["Datum", "Totaal"])
+            continue
 
-    totals_df = pd.DataFrame(totals_rows)
+        per_day = (
+            df12.assign(Datum=df12["date"].dt.normalize())
+            .groupby("Datum", as_index=False)["amount"]
+            .sum()
+            .rename(columns={"amount": "Totaal"})
+            .sort_values("Datum")
+            .reset_index(drop=True)
+        )
+
+        details[year] = per_day
+
+    totals_df = pd.DataFrame(totals)
 
     section_header("Totaal per Ramadanjaar")
     c1, c2, c3, c4 = st.columns(4)
-    cards = [
-        (2023, c1),
-        (2024, c2),
-        (2025, c3),
-        (2026, c4),
-    ]
+    cards = [(2023, c1), (2024, c2), (2025, c3), (2026, c4)]
+
     for yr, col in cards:
         row = totals_df[totals_df["Jaar"] == yr]
-        totaal = float(row["Totaal donaties Ramadan"].iloc[0]) if len(row) else 0.0
-        tx_count = int(row["Aantal transacties Ramadan"].iloc[0]) if len(row) else 0
+        totaal = float(row["Totaal"].iloc[0]) if len(row) else 0.0
+        transacties = int(row["Transacties"].iloc[0]) if len(row) else 0
         with col:
-            kpi_card(f"Ramadan {yr}", eur(totaal), f"{i0(tx_count)} transacties")
+            kpi_card(f"Ramadan {yr}", eur(totaal), f"{i0(transacties)} transacties")
 
     totals_show = totals_df.copy()
     totals_show = fmt_year_cols(totals_show, ["Jaar"])
-    totals_show = fmt_money_cols(totals_show, ["Totaal donaties Ramadan"])
-    totals_show = fmt_int_cols(totals_show, ["Aantal transacties Ramadan"])
+    totals_show = fmt_money_cols(totals_show, ["Totaal"])
+    totals_show = fmt_int_cols(totals_show, ["Transacties"])
     st.dataframe(totals_show, use_container_width=True, hide_index=True)
 
     section_header("Laatste 12 dagen van Ramadan", "Overzicht per jaar met uitklapbaar dagdetail")
 
     for yr in [2023, 2024, 2025, 2026]:
-        detail = details_by_year.get(yr, pd.DataFrame()).copy()
-        totaal_12 = float(detail["Totaal"].sum()) if len(detail) and "Totaal" in detail.columns else 0.0
-
         subsection(f"Ramadan {yr}")
+
+        detail = details.get(yr, pd.DataFrame(columns=["Datum", "Totaal"])).copy()
+
+        if detail.empty:
+            st.info(f"Geen transacties gevonden in de laatste 12 dagen van Ramadan {yr}.")
+            continue
+
+        totaal_12 = float(detail["Totaal"].sum())
+
         st.markdown(
             f"<div class='summary'><strong>Totaal laatste 12 dagen:</strong> {eur(totaal_12)}</div>",
             unsafe_allow_html=True,
         )
 
-        if len(detail):
-            overview = detail.copy()
-            overview["Datum"] = overview["Datum"].dt.strftime("%d-%m-%Y")
-            overview = fmt_money_cols(overview, ["Totaal"])
-            st.dataframe(overview, use_container_width=True, hide_index=True)
+        overview = detail.copy()
+        overview["Datum"] = pd.to_datetime(overview["Datum"], errors="coerce").dt.strftime("%d-%m-%Y")
+        overview = fmt_money_cols(overview, ["Totaal"])
+        st.dataframe(overview, use_container_width=True, hide_index=True)
 
-            with st.expander(f"Bekijk dagdetail Ramadan {yr}", expanded=False):
-                day_detail = details_by_year[yr].copy()
-                day_detail["Datum"] = day_detail["Datum"].dt.strftime("%d-%m-%Y")
-                day_detail = fmt_money_cols(day_detail, ["Totaal"])
-                st.dataframe(day_detail, use_container_width=True, hide_index=True)
-        else:
-            st.info(f"Geen transacties gevonden in de laatste 12 dagen van Ramadan {yr}.")
+        with st.expander(f"Bekijk detail per dag Ramadan {yr}", expanded=False):
+            st.dataframe(overview, use_container_width=True, hide_index=True)
 
 def main():
     inject_css()
