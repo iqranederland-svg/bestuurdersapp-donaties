@@ -920,9 +920,11 @@ def render_ramadan_tab(data):
             continue
 
         totaal_12 = float(detail12["Totaal"].sum())
+totaal_ramadan = float(detail_full["Totaal"].sum()) if not detail_full.empty else 0
 
         st.markdown(
-            f"<div class='summary'><strong>Totaal laatste 12 dagen:</strong> {eur(totaal_12)}</div>",
+            f"<div class='summary'><strong>Totaal Ramadan:</strong> {eur(totaal_ramadan)}<br><strong>Totaal laatste 12 dagen:</strong> {eur(totaal_12)}</div>",
+        st.markdown(f"<div class='summary'><strong>Totaal Ramadan:</strong> {eur(detail_full['Totaal'].sum() if not detail_full.empty else 0)}</div>", unsafe_allow_html=True)
             unsafe_allow_html=True,
         )
 
