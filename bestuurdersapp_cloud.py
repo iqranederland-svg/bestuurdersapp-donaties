@@ -1227,68 +1227,97 @@ def render_forecast_tab(data):
     )
 
     section_header("2. Vergelijking tussen twee periodes", "Vergelijk donorinstroom en bedrag tussen twee door jou gekozen periodes")
+
     compare_type = st.selectbox(
         "Kies periode-niveau",
         ["Dag", "Maand", "Jaar"],
         key="forecast_compare_type",
     )
 
-    if compare_type == "Dag":
-        options = sorted(work["Dag_label"].dropna().unique().tolist())
-        label_col = "Dag_label"
-        section_sub = "Vergelijking op dagniveau"
-    elif compare_type == "Maand":
-        options = sorted(work["Maand_label"].dropna().unique().tolist())
-        label_col = "Maand_label"
-        section_sub = "Vergelijking op maandniveau"
-    else:
-        options = [str(x) for x in sorted(work["Jaar"].dropna().astype(int).unique().tolist())]
-        label_col = "Jaar"
-        section_sub = "Vergelijking op jaarniveau"
+    available_years = sorted(work["Jaar"].dropna().astype(int).unique().tolist())
 
-    default_a = 0
-    default_b = min(1, len(options) - 1) if options else 0
+    def select_period(prefix):
+        year = st.selectbox(
+            f"Jaar {prefix}",
+            available_years,
+            key=f"forecast_{prefix.lower()}_year",
+        )
+
+        if compare_type == "Jaar":
+            label = str(year)
+            subset = pot_df[pot_df["Jaar"] == year].copy()
+            return {"label": label, "subset": subset}
+
+        months = sorted(
+            work.loc[work["Jaar"] == year, "Maand_label"].dropna().astype(str).unique().tolist()
+        )
+
+        month = st.selectbox(
+            f"Maand {prefix}",
+            months,
+            key=f"forecast_{prefix.lower()}_month",
+        )
+
+        if compare_type == "Maand":
+            label = month
+            subset = pot_df[pot_df["Maand_label"] == month].copy()
+            return {"label": label, "subset": subset}
+
+        days = sorted(
+            work.loc[work["Maand_label"] == month, "Dag_label"].dropna().astype(str).unique().tolist()
+        )
+
+        day = st.selectbox(
+            f"Dag {prefix}",
+            days,
+            key=f"forecast_{prefix.lower()}_day",
+        )
+
+        label = day
+        subset = pot_df[pot_df["Dag_label"] == day].copy()
+        return {"label": label, "subset": subset}
 
     col_a, col_b = st.columns(2)
+
     with col_a:
-        period_a = st.selectbox("Periode A", options, index=default_a if options else None, key="forecast_period_a")
+        period_a = select_period("A")
+
     with col_b:
-        period_b = st.selectbox("Periode B", options, index=default_b if options else None, key="forecast_period_b")
+        period_b = select_period("B")
 
-    if options:
-        if label_col == "Jaar":
-            df_a = pot_df[pot_df["Jaar"] == int(period_a)].copy()
-            df_b = pot_df[pot_df["Jaar"] == int(period_b)].copy()
-        else:
-            df_a = pot_df[pot_df[label_col] == period_a].copy()
-            df_b = pot_df[pot_df[label_col] == period_b].copy()
+    df_a = period_a["subset"]
+    df_b = period_b["subset"]
+    label_a = period_a["label"]
+    label_b = period_b["label"]
 
-        a_donors = int(df_a["Donateur_ID"].nunique())
-        b_donors = int(df_b["Donateur_ID"].nunique())
-        a_amount = float(df_a["Bedrag"].sum())
-        b_amount = float(df_b["Bedrag"].sum())
+    a_donors = int(df_a["Donateur_ID"].nunique()) if len(df_a) else 0
+    b_donors = int(df_b["Donateur_ID"].nunique()) if len(df_b) else 0
+    a_amount = float(df_a["Bedrag"].sum()) if len(df_a) else 0.0
+    b_amount = float(df_b["Bedrag"].sum()) if len(df_b) else 0.0
 
-        v1, v2, v3, v4 = st.columns(4)
-        with v1:
-            kpi_card(f"Donateurs {period_a}", i0(a_donors), section_sub)
-        with v2:
-            kpi_card(f"Donateurs {period_b}", i0(b_donors), section_sub)
-        with v3:
-            kpi_card(f"Bedrag {period_a}", eur(a_amount), section_sub)
-        with v4:
-            kpi_card(f"Bedrag {period_b}", eur(b_amount), section_sub)
+    v1, v2, v3, v4 = st.columns(4)
+    with v1:
+        kpi_card(f"Donateurs {label_a}", i0(a_donors), "unieke donateurs in periode A")
+    with v2:
+        kpi_card(f"Donateurs {label_b}", i0(b_donors), "unieke donateurs in periode B")
+    with v3:
+        kpi_card(f"Bedrag {label_a}", eur(a_amount), "opbrengst in periode A")
+    with v4:
+        kpi_card(f"Bedrag {label_b}", eur(b_amount), "opbrengst in periode B")
 
-        diff_donors = b_donors - a_donors
-        diff_amount = b_amount - a_amount
+    diff_donors = b_donors - a_donors
+    diff_amount = b_amount - a_amount
 
-        st.markdown(
-            "<div class='summary'>"
-            f"<strong>Verschil donateurs:</strong> {i0(diff_donors)}<br>"
-            f"<strong>Verschil bedrag:</strong> {eur(diff_amount)}<br>"
-            "Deze vergelijking laat zien of een latere of andere periode meer donors en meer opbrengst heeft gegenereerd binnen de potentiële cohort."
-            "</div>",
-            unsafe_allow_html=True,
-        )
+    st.markdown(
+        "<div class='summary'>"
+        f"<strong>Periode A:</strong> {label_a}<br>"
+        f"<strong>Periode B:</strong> {label_b}<br>"
+        f"<strong>Verschil donateurs (B - A):</strong> {i0(diff_donors)}<br>"
+        f"<strong>Verschil bedrag (B - A):</strong> {eur(diff_amount)}<br>"
+        "Deze vergelijking laat zien of de tweede gekozen periode meer of minder donors en opbrengst genereerde dan de eerste."
+        "</div>",
+        unsafe_allow_html=True,
+    )
 
     section_header("3. Historisch gedrag van potentiële donateurs", "Wanneer doneerde deze groep in Ramadan 2025?")
     daily = (
