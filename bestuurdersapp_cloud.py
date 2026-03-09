@@ -1139,26 +1139,40 @@ def render_ramadan_tab(data):
 
 
 
-def render_forecast_tab(data):
 
+def render_forecast_tab(data):
     section_header(
         "Fundraising forecast",
-        "Analyse van potentiële donateurs uit 2025 en hun gedrag in 2026"
+        "Potentiële donateurs, historische Ramadan-patronen en terugkeer in 2026"
+    )
+
+    info_box(
+        "Dit tabblad gebruikt unieke Donateur_ID als basis. "
+        "De kerncohort bestaat uit donateurs die in 2025 doneerden. "
+        "Per onderdeel wordt expliciet uitgelegd welke selectie en welke definitie is gebruikt."
     )
 
     tx = data["transactions"].copy()
+    if len(tx) == 0:
+        st.info("Geen transactiedata beschikbaar.")
+        return
 
-    tx["Datum"] = pd.to_datetime(tx["Datum"], errors="coerce")
+    tx["Datum"] = pd.to_datetime(tx["Datum"], errors="coerce", dayfirst=True)
     tx["Bedrag"] = pd.to_numeric(tx["Bedrag"], errors="coerce")
+    tx["Donateur_ID"] = tx["Donateur_ID"].astype(str).str.strip()
 
     tx = tx[
-        tx["Datum"].notna() &
-        tx["Bedrag"].notna() &
-        (tx["Bedrag"] > 0) &
-        tx["Donateur_ID"].notna()
+        tx["Datum"].notna()
+        & tx["Bedrag"].notna()
+        & (tx["Bedrag"] > 0)
+        & tx["Donateur_ID"].notna()
+        & (tx["Donateur_ID"] != "")
+        & (tx["Donateur_ID"].str.upper() != "NAN")
     ].copy()
 
     tx["Jaar"] = tx["Datum"].dt.year
+    tx["Maand"] = tx["Datum"].dt.month
+    tx["Dag"] = tx["Datum"].dt.day
 
     donors_2025 = set(tx.loc[tx["Jaar"] == 2025, "Donateur_ID"])
     donors_2026 = set(tx.loc[tx["Jaar"] == 2026, "Donateur_ID"])
@@ -1167,94 +1181,370 @@ def render_forecast_tab(data):
     potential = donors_2025 - donors_2026
     new_2026 = donors_2026 - donors_2025
 
-    return_rate = (
-        len(returned) / len(donors_2025) * 100
-        if donors_2025 else 0
-    )
+    ramadan_2025_start = pd.Timestamp("2025-02-27")
+    ramadan_2025_end = pd.Timestamp("2025-03-30")
+    ramadan_2026_start = pd.Timestamp("2026-02-17")
+    ramadan_2026_end = pd.Timestamp("2026-03-20")
+    last12_2025_start = ramadan_2025_end - pd.Timedelta(days=11)
 
+    # ---------------------------------------------------
+    # 1. Donateurbasis vergelijking
+    # ---------------------------------------------------
     section_header(
         "1. Donateurbasis vergelijking",
-        "Ontwikkeling van de donorcohort uit 2025"
+        "Vergelijking van de 2025-donorbasis met de stand in 2026"
     )
 
-    c1,c2,c3,c4,c5 = st.columns(5)
+    return_rate = (len(returned) / len(donors_2025) * 100.0) if len(donors_2025) else 0.0
 
+    c1, c2, c3, c4, c5 = st.columns(5)
     with c1:
-        kpi_card("Donateurs 2025", i0(len(donors_2025)))
-
+        kpi_card("Donateurs 2025", i0(len(donors_2025)), "unieke Donateur_ID met minimaal één donatie in 2025")
     with c2:
-        kpi_card("Teruggekeerd in 2026", i0(len(returned)))
-
+        kpi_card("Teruggekeerd in 2026", i0(len(returned)), "2025-donateurs die in 2026 opnieuw doneerden")
     with c3:
-        kpi_card("Nog niet terug uit 2025", i0(len(potential)))
-
+        kpi_card("Nog niet terug uit 2025", i0(len(potential)), "2025-donateurs die in 2026 nog niet terugkeerden")
     with c4:
-        kpi_card("Nieuwe donateurs 2026", i0(len(new_2026)))
-
+        kpi_card("Nieuwe donateurs 2026", i0(len(new_2026)), "donateurs die in 2025 nog niet voorkwamen")
     with c5:
-        kpi_card("Retentiepercentage", f"{return_rate:.1f}%")
+        kpi_card("Retentiepercentage", pct(return_rate), "teruggekeerd uit 2025 / donateurs 2025")
 
     st.markdown(
         "<div class='summary'>"
-        "Dit blok toont hoe de donateurbasis uit 2025 zich ontwikkelt in 2026. "
-        "Teruggekeerd zijn donateurs uit 2025 die opnieuw hebben gegeven. "
-        "Nog niet terug vormt het resterende fondsenwervingspotentieel."
+        "<strong>Definities:</strong><br>"
+        "Donateurs 2025 = unieke Donateur_ID die in kalenderjaar 2025 minimaal één donatie deden.<br>"
+        "Teruggekeerd in 2026 = donateurs uit 2025 die ook in 2026 minimaal één donatie deden.<br>"
+        "Nog niet terug uit 2025 = donateurs uit 2025 die in 2026 tot de peildatum nog geen donatie deden.<br>"
+        "Nieuwe donateurs 2026 = donateurs die in 2026 wel voorkwamen maar niet in 2025.<br>"
+        "Retentiepercentage = teruggekeerde 2025-donateurs gedeeld door de totale 2025-donorbasis."
         "</div>",
         unsafe_allow_html=True
     )
 
-    section_header("2. Vergelijking tussen twee periodes")
-
-    years = sorted(tx["Jaar"].unique())
-
-    colA,colB = st.columns(2)
-
-    with colA:
-        yearA = st.selectbox("Jaar A", years)
-        monthA = st.selectbox("Maand A", sorted(tx.loc[tx["Jaar"]==yearA,"Datum"].dt.month.unique()))
-        dayA = st.selectbox("Dag A", sorted(tx.loc[(tx["Jaar"]==yearA)&(tx["Datum"].dt.month==monthA),"Datum"].dt.day.unique()))
-
-    with colB:
-        yearB = st.selectbox("Jaar B", years)
-        monthB = st.selectbox("Maand B", sorted(tx.loc[tx["Jaar"]==yearB,"Datum"].dt.month.unique()))
-        dayB = st.selectbox("Dag B", sorted(tx.loc[(tx["Jaar"]==yearB)&(tx["Datum"].dt.month==monthB),"Datum"].dt.day.unique()))
-
-    dateA = pd.Timestamp(yearA,monthA,dayA)
-    dateB = pd.Timestamp(yearB,monthB,dayB)
-
-    donors_before_A = set(
-        tx.loc[(tx["Datum"] < dateA) & (tx["Jaar"]==2026),"Donateur_ID"]
+    # ---------------------------------------------------
+    # 2. Vergelijking tussen twee periodes
+    # ---------------------------------------------------
+    section_header(
+        "2. Vergelijking tussen twee periodes",
+        "Hoeveel verdwenen 2025-donateurs keerden tussen twee gekozen datums alsnog terug?"
     )
 
-    missing_at_A = donors_2025 - donors_before_A
+    dates_2026 = sorted(tx.loc[tx["Jaar"] == 2026, "Datum"].dt.normalize().dropna().unique().tolist())
+    dates_2026 = [pd.Timestamp(d) for d in dates_2026]
 
-    window = tx[
-        (tx["Donateur_ID"].isin(missing_at_A)) &
-        (tx["Datum"] >= dateA) &
-        (tx["Datum"] <= dateB)
-    ]
+    if not dates_2026:
+        st.info("Geen datums beschikbaar in 2026 voor vergelijking.")
+    else:
+        def pick_date(prefix, allowed_dates, min_date=None):
+            dates = [pd.Timestamp(d) for d in allowed_dates]
+            if min_date is not None:
+                dates = [d for d in dates if d >= min_date]
 
-    returned_donors = window["Donateur_ID"].nunique()
-    returned_amount = window["Bedrag"].sum()
+            years = sorted({d.year for d in dates})
+            year = st.selectbox(f"Jaar {prefix}", years, key=f"forecast_{prefix.lower()}_year")
 
-    c1,c2,c3 = st.columns(3)
+            months = sorted({d.month for d in dates if d.year == year})
+            month = st.selectbox(f"Maand {prefix}", months, key=f"forecast_{prefix.lower()}_month")
 
-    with c1:
-        kpi_card("Nog niet terug op startdatum", i0(len(missing_at_A)))
+            days = sorted({d.day for d in dates if d.year == year and d.month == month})
+            day = st.selectbox(f"Dag {prefix}", days, key=f"forecast_{prefix.lower()}_day")
 
-    with c2:
-        kpi_card("Teruggekeerd in periode", i0(returned_donors))
+            return pd.Timestamp(year=year, month=month, day=day)
 
-    with c3:
-        kpi_card("Bedrag in periode", eur(returned_amount))
+        a, b = st.columns(2)
+        with a:
+            start_date = pick_date("start", dates_2026)
+        with b:
+            end_date = pick_date("eind", dates_2026, min_date=start_date)
+
+        donors_before_start_2026 = set(
+            tx.loc[
+                (tx["Jaar"] == 2026) &
+                (tx["Datum"] < start_date),
+                "Donateur_ID"
+            ]
+        )
+
+        missing_at_start = donors_2025 - donors_before_start_2026
+
+        returned_in_window = tx[
+            (tx["Jaar"] == 2026) &
+            (tx["Donateur_ID"].isin(missing_at_start)) &
+            (tx["Datum"] >= start_date) &
+            (tx["Datum"] <= end_date)
+        ].copy()
+
+        comeback_first = (
+            returned_in_window.groupby("Donateur_ID", as_index=False)["Datum"]
+            .min()
+            .rename(columns={"Datum": "Eerste_terugkeer"})
+        )
+
+        last_before_2026 = (
+            tx.loc[tx["Jaar"] < 2026]
+            .groupby("Donateur_ID", as_index=False)["Datum"]
+            .max()
+            .rename(columns={"Datum": "Laatste_donatie_voor_2026"})
+        )
+
+        since_return_2026 = tx[
+            (tx["Jaar"] == 2026) &
+            (tx["Donateur_ID"].isin(returned_in_window["Donateur_ID"].unique()))
+        ].copy()
+
+        if len(since_return_2026) and len(comeback_first):
+            since_return_2026 = since_return_2026.merge(comeback_first, on="Donateur_ID", how="inner")
+            since_return_2026 = since_return_2026[since_return_2026["Datum"] >= since_return_2026["Eerste_terugkeer"]].copy()
+
+        returned_donors = int(returned_in_window["Donateur_ID"].nunique())
+        returned_amount_window = float(returned_in_window["Bedrag"].sum()) if len(returned_in_window) else 0.0
+        returned_amount_since = float(since_return_2026["Bedrag"].sum()) if len(since_return_2026) else 0.0
+
+        k1, k2, k3, k4 = st.columns(4)
+        with k1:
+            kpi_card("Nog niet terug op startdatum", i0(len(missing_at_start)), "2025-donateurs die vóór startdatum nog niet terugkeerden")
+        with k2:
+            kpi_card("Teruggekeerd in gekozen periode", i0(returned_donors), f"{start_date.strftime('%d-%m-%Y')} t/m {end_date.strftime('%d-%m-%Y')}")
+        with k3:
+            kpi_card("Bedrag in gekozen periode", eur(returned_amount_window), "alleen transacties tussen start en eind")
+        with k4:
+            kpi_card("Bedrag sinds terugkeer in 2026", eur(returned_amount_since), "alles wat deze groep sinds comeback in 2026 doneerde")
+
+        st.markdown(
+            "<div class='summary'>"
+            f"<strong>Definitie:</strong> eerst bepalen we welke 2025-donateurs op <strong>{start_date.strftime('%d-%m-%Y')}</strong> nog niet waren teruggekeerd in 2026. "
+            f"Vervolgens meten we hoeveel van deze groep tussen <strong>{start_date.strftime('%d-%m-%Y')}</strong> en <strong>{end_date.strftime('%d-%m-%Y')}</strong> alsnog terugkwam. "
+            "Het laatste bedrag telt daarna alles mee wat deze teruggekeerde groep sinds hun comeback in 2026 heeft gedoneerd."
+            "</div>",
+            unsafe_allow_html=True
+        )
+
+        if len(returned_in_window):
+            detail = (
+                since_return_2026.groupby("Donateur_ID", as_index=False)
+                .agg(
+                    Eerste_terugkeer=("Eerste_terugkeer", "min"),
+                    Totaal_bedrag=("Bedrag", "sum"),
+                )
+                .merge(last_before_2026, on="Donateur_ID", how="left")
+                .sort_values("Totaal_bedrag", ascending=False)
+            )
+
+            detail["Laatste_donatie_voor_2026"] = pd.to_datetime(detail["Laatste_donatie_voor_2026"], errors="coerce").dt.strftime("%d-%m-%Y")
+            detail["Eerste_terugkeer"] = pd.to_datetime(detail["Eerste_terugkeer"], errors="coerce").dt.strftime("%d-%m-%Y")
+            detail = fmt_money_cols(detail, ["Totaal_bedrag"])
+            detail = detail[["Donateur_ID", "Laatste_donatie_voor_2026", "Eerste_terugkeer", "Totaal_bedrag"]]
+
+            st.dataframe(detail, use_container_width=True, hide_index=True)
+
+            st.markdown(
+                "<div class='summary'>"
+                "De tabel toont welke eerder verdwenen donateurs in deze periode terugkwamen, "
+                "wanneer hun laatste donatie vóór 2026 plaatsvond, wanneer hun comeback in 2026 begon "
+                "en hoeveel zij sinds die comeback in totaal hebben gedoneerd."
+                "</div>",
+                unsafe_allow_html=True
+            )
+        else:
+            st.info("Geen teruggekeerde donateurs gevonden binnen deze gekozen periode.")
+
+    # ---------------------------------------------------
+    # 3. Laatste 12 dagen Ramadan 2025 van nog niet teruggekeerde donateurs
+    # ---------------------------------------------------
+    section_header(
+        "3. Laatste 12 dagen Ramadan 2025 van nog niet teruggekeerde donateurs",
+        "Historisch gedrag van de huidige potentiële cohort in de slotfase van Ramadan 2025"
+    )
+
+    pot_df = tx[tx["Donateur_ID"].isin(potential)].copy()
+    last12_2025 = pot_df[
+        (pot_df["Datum"] >= last12_2025_start) &
+        (pot_df["Datum"] <= ramadan_2025_end)
+    ].copy()
+
+    d1, d2, d3 = st.columns(3)
+    with d1:
+        kpi_card("Donateurs in laatste 12 dagen", i0(last12_2025["Donateur_ID"].nunique()), "potentiële cohort die toen nog doneerde")
+    with d2:
+        kpi_card("Bedrag laatste 12 dagen", eur(last12_2025["Bedrag"].sum()), "historisch bedrag van deze cohort")
+    with d3:
+        kpi_card("Transacties laatste 12 dagen", i0(len(last12_2025)), "aantal transacties in de slotfase")
 
     st.markdown(
         "<div class='summary'>"
-        "Deze analyse toont hoeveel donateurs uit 2025 die nog niet waren teruggekeerd "
-        "tussen de gekozen datums alsnog een donatie hebben gedaan."
+        "Hier kijken we alleen naar de donateurs uit 2025 die in 2026 nog niet zijn teruggekeerd. "
+        "Daarvan tonen we hoeveel er in de laatste 12 dagen van Ramadan 2025 doneerden en welk bedrag zij toen samen opbrachten."
         "</div>",
         unsafe_allow_html=True
     )
+
+    if len(last12_2025):
+        daily12 = (
+            last12_2025.assign(Datum_only=last12_2025["Datum"].dt.normalize())
+            .groupby("Datum_only", as_index=False)
+            .agg(
+                Donateurs=("Donateur_ID", "nunique"),
+                Bedrag=("Bedrag", "sum"),
+            )
+            .sort_values("Datum_only")
+        )
+        daily12["Datum"] = daily12["Datum_only"].dt.strftime("%d-%m-%Y")
+        daily12 = daily12.drop(columns=["Datum_only"])
+        daily12 = fmt_int_cols(daily12, ["Donateurs"])
+        daily12 = fmt_money_cols(daily12, ["Bedrag"])
+
+        st.dataframe(daily12, use_container_width=True, hide_index=True)
+
+        st.markdown(
+            "<div class='summary'>"
+            "Deze tabel laat per dag in de laatste 12 dagen van Ramadan 2025 zien "
+            "hoeveel van de nu nog ontbrekende donateurs toen actief waren en voor welk bedrag."
+            "</div>",
+            unsafe_allow_html=True
+        )
+    else:
+        st.info("Geen transacties gevonden in de laatste 12 dagen van Ramadan 2025 voor deze cohort.")
+
+    # ---------------------------------------------------
+    # 4. Forecast resterende potentie
+    # ---------------------------------------------------
+    section_header(
+        "4. Forecast resterende potentie",
+        "Historische benchmark voor wat na de huidige peildatum nog zou kunnen terugkomen"
+    )
+
+    last_tx_2026 = tx.loc[tx["Jaar"] == 2026, "Datum"].max() if len(tx.loc[tx["Jaar"] == 2026]) else pd.NaT
+
+    if pd.notna(last_tx_2026) and last_tx_2026 >= ramadan_2026_start and last_tx_2026 <= ramadan_2026_end:
+        current_ramadan_day_2026 = int((last_tx_2026.normalize() - ramadan_2026_start.normalize()).days) + 1
+        analogous_cutoff_2025 = ramadan_2025_start + pd.Timedelta(days=current_ramadan_day_2026 - 1)
+
+        historical_remaining_2025 = pot_df[
+            (pot_df["Datum"] > analogous_cutoff_2025) &
+            (pot_df["Datum"] <= ramadan_2025_end)
+        ].copy()
+
+        f1, f2, f3 = st.columns(3)
+        with f1:
+            kpi_card("Peildatum 2026", last_tx_2026.strftime("%d-%m-%Y"), "meest recente transactiedatum in bronbestand")
+        with f2:
+            kpi_card("Historisch nog te verwachten donateurs", i0(historical_remaining_2025["Donateur_ID"].nunique()), "zelfde cohort ná analoge dag in Ramadan 2025")
+        with f3:
+            kpi_card("Historisch nog te verwachten bedrag", eur(historical_remaining_2025["Bedrag"].sum()), "benchmark op basis van resterende Ramadan 2025")
+
+        st.markdown(
+            "<div class='summary'>"
+            f"<strong>Definitie:</strong> de huidige peildatum in 2026 valt op dag <strong>{i0(current_ramadan_day_2026)}</strong> van Ramadan 2026. "
+            "We projecteren dat op Ramadan 2025 en kijken dan wat de huidige nog-niet-teruggekeerde cohort ná die analoge dag in 2025 nog doneerde. "
+            "Dit is bewust geen harde voorspelling, maar een historische benchmark voor het resterende potentieel."
+            "</div>",
+            unsafe_allow_html=True
+        )
+    else:
+        st.info("Peildatum 2026 valt niet binnen Ramadan 2026. Forecast resterende Ramadan-potentie kan daardoor niet worden berekend.")
+
+    # ---------------------------------------------------
+    # 5. Teruggekomen donateurs sinds gekozen periode
+    # ---------------------------------------------------
+    section_header(
+        "5. Teruggekomen donateurs sinds gekozen periode",
+        "Selecteer een startperiode en bekijk welke historische donateurs daarna opnieuw actief werden"
+    )
+
+    comeback_dates = dates_2026 if 'dates_2026' in locals() else []
+    if not comeback_dates:
+        st.info("Geen datums beschikbaar in 2026 voor comeback-analyse.")
+    else:
+        def pick_since_date(prefix, allowed_dates):
+            dates = [pd.Timestamp(d) for d in allowed_dates]
+            years = sorted({d.year for d in dates})
+            year = st.selectbox(f"Jaar {prefix}", years, key=f"forecast_since_{prefix.lower()}_year")
+            months = sorted({d.month for d in dates if d.year == year})
+            month = st.selectbox(f"Maand {prefix}", months, key=f"forecast_since_{prefix.lower()}_month")
+            days = sorted({d.day for d in dates if d.year == year and d.month == month})
+            day = st.selectbox(f"Dag {prefix}", days, key=f"forecast_since_{prefix.lower()}_day")
+            return pd.Timestamp(year=year, month=month, day=day)
+
+        since_date = pick_since_date("vanaf", comeback_dates)
+
+        history_before = tx[tx["Datum"] < since_date].copy()
+        donors_before = set(history_before["Donateur_ID"])
+
+        future_period = tx[
+            (tx["Jaar"] == 2026) &
+            (tx["Datum"] >= since_date)
+        ].copy()
+
+        comeback_donors = set(future_period["Donateur_ID"]).intersection(donors_before)
+
+        comeback_first = (
+            future_period[future_period["Donateur_ID"].isin(comeback_donors)]
+            .groupby("Donateur_ID", as_index=False)["Datum"]
+            .min()
+            .rename(columns={"Datum": "Eerste_comeback"})
+        )
+
+        all_since_comeback = tx[
+            (tx["Jaar"] == 2026) &
+            (tx["Donateur_ID"].isin(comeback_donors))
+        ].copy()
+
+        if len(all_since_comeback) and len(comeback_first):
+            all_since_comeback = all_since_comeback.merge(comeback_first, on="Donateur_ID", how="inner")
+            all_since_comeback = all_since_comeback[all_since_comeback["Datum"] >= all_since_comeback["Eerste_comeback"]].copy()
+
+        last_before = (
+            tx[tx["Datum"] < pd.Timestamp("2026-01-01")]
+            .groupby("Donateur_ID", as_index=False)["Datum"]
+            .max()
+            .rename(columns={"Datum": "Laatste_donatie_voor_2026"})
+        )
+
+        r1, r2, r3 = st.columns(3)
+        with r1:
+            kpi_card("Teruggekomen donateurs", i0(len(comeback_donors)), f"sinds {since_date.strftime('%d-%m-%Y')}")
+        with r2:
+            kpi_card("Donaties sinds comeback", i0(len(all_since_comeback)), "alle 2026-transacties vanaf comeback")
+        with r3:
+            kpi_card("Bedrag sinds comeback", eur(all_since_comeback["Bedrag"].sum()), "som van donaties sinds comeback in 2026")
+
+        st.markdown(
+            "<div class='summary'>"
+            f"Deze analyse kijkt naar donateurs die al vóór <strong>{since_date.strftime('%d-%m-%Y')}</strong> bekend waren "
+            "en vanaf die datum in 2026 opnieuw actief werden. "
+            "Daarna telt het model hoeveel zij sindsdien in totaal hebben gedoneerd."
+            "</div>",
+            unsafe_allow_html=True
+        )
+
+        if len(all_since_comeback):
+            comeback_table = (
+                all_since_comeback.groupby("Donateur_ID", as_index=False)
+                .agg(
+                    Eerste_comeback=("Eerste_comeback", "min"),
+                    Totaal_bedrag=("Bedrag", "sum"),
+                )
+                .merge(last_before, on="Donateur_ID", how="left")
+                .sort_values("Totaal_bedrag", ascending=False)
+            )
+
+            comeback_table["Laatste_donatie_voor_2026"] = pd.to_datetime(comeback_table["Laatste_donatie_voor_2026"], errors="coerce").dt.strftime("%d-%m-%Y")
+            comeback_table["Eerste_comeback"] = pd.to_datetime(comeback_table["Eerste_comeback"], errors="coerce").dt.strftime("%d-%m-%Y")
+            comeback_table = fmt_money_cols(comeback_table, ["Totaal_bedrag"])
+            comeback_table = comeback_table[["Donateur_ID", "Laatste_donatie_voor_2026", "Eerste_comeback", "Totaal_bedrag"]]
+
+            st.dataframe(comeback_table, use_container_width=True, hide_index=True)
+
+            st.markdown(
+                "<div class='summary'>"
+                "De tabel toont welke donateurs terugkwamen sinds de gekozen periode, "
+                "wanneer hun laatste donatie vóór 2026 plaatsvond, wanneer hun comeback begon "
+                "en welk totaalbedrag zij sindsdien in 2026 hebben gedoneerd."
+                "</div>",
+                unsafe_allow_html=True
+            )
+        else:
+            st.info("Geen teruggekomen donateurs gevonden sinds de gekozen periode.")
 
 def main():
     inject_css()
