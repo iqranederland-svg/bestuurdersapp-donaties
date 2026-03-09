@@ -1353,25 +1353,50 @@ def render_forecast_tab(data):
         )
 
         if len(returned_in_window):
+            comeback_first = (
+                returned_in_window.groupby("Donateur_ID", as_index=False)["Datum"]
+                .min()
+                .rename(columns={"Datum": "Eerste_terugkeer"})
+            )
+
+            last_before_2026 = (
+                tx.loc[tx["Jaar"] < 2026]
+                .groupby("Donateur_ID", as_index=False)["Datum"]
+                .max()
+                .rename(columns={"Datum": "Laatste_donatie_voor_2026"})
+            )
+
+            since_return_2026 = tx[
+                (tx["Jaar"] == 2026) &
+                (tx["Donateur_ID"].isin(returned_in_window["Donateur_ID"].unique()))
+            ].copy()
+
+            since_return_2026 = since_return_2026.merge(comeback_first, on="Donateur_ID", how="inner")
+            since_return_2026 = since_return_2026[since_return_2026["Datum"] >= since_return_2026["Eerste_terugkeer"]].copy()
+
             detail = (
-                returned_in_window.groupby("Donateur_ID", as_index=False)
+                since_return_2026.groupby("Donateur_ID", as_index=False)
                 .agg(
-                    Eerste_terugkeer=("Datum", "min"),
-                    Aantal_transacties=("Bedrag", "size"),
+                    Eerste_terugkeer=("Eerste_terugkeer", "min"),
                     Totaal_bedrag=("Bedrag", "sum"),
                 )
+                .merge(last_before_2026, on="Donateur_ID", how="left")
                 .sort_values("Totaal_bedrag", ascending=False)
             )
-            detail["Eerste_terugkeer"] = pd.to_datetime(detail["Eerste_terugkeer"]).dt.strftime("%d-%m-%Y")
-            detail = fmt_int_cols(detail, ["Aantal_transacties"])
+
+            detail["Laatste_donatie_voor_2026"] = pd.to_datetime(detail["Laatste_donatie_voor_2026"], errors="coerce").dt.strftime("%d-%m-%Y")
+            detail["Eerste_terugkeer"] = pd.to_datetime(detail["Eerste_terugkeer"], errors="coerce").dt.strftime("%d-%m-%Y")
             detail = fmt_money_cols(detail, ["Totaal_bedrag"])
+
+            detail = detail[["Donateur_ID", "Laatste_donatie_voor_2026", "Eerste_terugkeer", "Totaal_bedrag"]]
 
             st.dataframe(detail, use_container_width=True, hide_index=True)
 
             st.markdown(
                 "<div class='summary'>"
                 "De tabel toont welke eerder verdwenen donateurs in deze gekozen periode terugkwamen, "
-                "wanneer hun comeback begon en welk bedrag zij in deze periode samen opleverden."
+                "wanneer hun laatste donatie vóór 2026 plaatsvond, wanneer hun comeback in 2026 begon "
+                "en welk totaalbedrag zij sinds die comeback in 2026 hebben gedoneerd."
                 "</div>",
                 unsafe_allow_html=True
             )
