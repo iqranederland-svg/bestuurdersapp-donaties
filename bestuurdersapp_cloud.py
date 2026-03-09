@@ -122,6 +122,46 @@ def load_current_period_meta():
             return {}
     return {}
 
+
+def get_effective_period_text(data=None):
+    try:
+        if data is not None and isinstance(data, dict) and "transactions" in data and data["transactions"] is not None:
+            tx = data["transactions"].copy()
+
+            date_col = None
+            for c in ["Datum", "date", "Date", "Interest Date"]:
+                if c in tx.columns:
+                    date_col = c
+                    break
+
+            if date_col is not None and len(tx):
+                dates = pd.to_datetime(tx[date_col], errors="coerce", dayfirst=True)
+                max_date = dates.max()
+                if pd.notna(max_date):
+                    return "januari 2023 t/m " + max_date.strftime("%d-%m-%Y")
+    except Exception:
+        pass
+
+    try:
+        fin = load_financial_summary()
+        end_date = fin.get("end_date")
+        if end_date:
+            dt = pd.to_datetime(end_date, errors="coerce")
+            if pd.notna(dt):
+                return "januari 2023 t/m " + dt.strftime("%d-%m-%Y")
+    except Exception:
+        pass
+
+    try:
+        meta = load_current_period_meta()
+        if meta.get("period_label"):
+            return str(meta.get("period_label"))
+    except Exception:
+        pass
+
+    return "gekozen periode"
+
+
 def load_data():
     xlsx = newest("donateur_intelligence_v5_*.xlsx")
     if not xlsx:
@@ -422,7 +462,7 @@ def render_dashboard_tab(data):
     if standdatum:
         period_text = "januari 2023 t/m " + pd.to_datetime(standdatum).strftime("%d-%m-%Y")
     else:
-        period_text = str(meta.get("period_label", "gekozen periode"))
+        period_text = get_effective_period_text(data)
     
 
 
