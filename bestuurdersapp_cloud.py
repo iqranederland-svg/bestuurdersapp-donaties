@@ -1137,362 +1137,164 @@ def render_ramadan_tab(data):
                 st.dataframe(styled_full, use_container_width=True, hide_index=True)
 
 
-def render_forecast_tab(data):
-    section_header("Fundraising forecast", "Potentiële donateurs, historische patronen en vergelijking tussen periodes")
 
-    info_box(
-        "Dit tabblad richt zich op donateurs met een geldige Donateur_ID. "
-        "De kerncohort bestaat uit donateurs die in 2025 doneerden maar in 2026 nog niet. "
-        "Daarmee laat dit tabblad zien welk potentieel nog openstaat, wanneer deze groep historisch doneert "
-        "en hoe twee door jou gekozen periodes zich tot elkaar verhouden."
+def render_forecast_tab(data):
+
+    section_header(
+        "Fundraising forecast",
+        "Analyse van potentiële donateurs en vergelijking tussen periodes"
     )
 
     tx = data["transactions"].copy()
-    if len(tx) == 0:
-        st.info("Geen transactiedata beschikbaar.")
-        return
 
-    work = tx.copy()
-    work["Datum"] = pd.to_datetime(work["Datum"], errors="coerce", dayfirst=True)
-    work["Bedrag"] = pd.to_numeric(work["Bedrag"], errors="coerce")
-    work["Donateur_ID"] = work["Donateur_ID"].astype(str).str.strip()
-    work = work[
-        work["Datum"].notna()
-        & work["Bedrag"].notna()
-        & (work["Bedrag"] > 0)
-        & (work["Donateur_ID"] != "")
-        & (work["Donateur_ID"].str.upper() != "NAN")
+    tx["Datum"] = pd.to_datetime(tx["Datum"], errors="coerce")
+    tx["Bedrag"] = pd.to_numeric(tx["Bedrag"], errors="coerce")
+
+    tx = tx[
+        tx["Datum"].notna()
+        & tx["Bedrag"].notna()
+        & (tx["Bedrag"] > 0)
+        & tx["Donateur_ID"].notna()
     ].copy()
 
-    work["Jaar"] = work["Datum"].dt.year
-    work["Maand_label"] = work["Datum"].dt.strftime("%Y-%m")
-    work["Dag_label"] = work["Datum"].dt.strftime("%d-%m-%Y")
+    tx["Jaar"] = tx["Datum"].dt.year
 
-    donors_2025 = set(work.loc[work["Jaar"] == 2025, "Donateur_ID"])
-    donors_2026 = set(work.loc[work["Jaar"] == 2026, "Donateur_ID"])
+    donors_2025 = set(tx.loc[tx["Jaar"] == 2025, "Donateur_ID"])
+    donors_2026 = set(tx.loc[tx["Jaar"] == 2026, "Donateur_ID"])
+
     potential = donors_2025 - donors_2026
 
     ramadan_2025_start = pd.Timestamp("2025-02-27")
     ramadan_2025_end = pd.Timestamp("2025-03-30")
-    ramadan_2026_start = pd.Timestamp("2026-02-17")
-    ramadan_2026_end = pd.Timestamp("2026-03-20")
-    last12_2025_start = ramadan_2025_end - pd.Timedelta(days=11)
 
-    pot_df = work[work["Donateur_ID"].isin(potential)].copy()
-    pot_ramadan_2025 = pot_df[
-        (pot_df["Datum"] >= ramadan_2025_start) &
-        (pot_df["Datum"] <= ramadan_2025_end)
-    ].copy()
-    pot_last12_2025 = pot_df[
-        (pot_df["Datum"] >= last12_2025_start) &
-        (pot_df["Datum"] <= ramadan_2025_end)
-    ].copy()
+    last12_start = ramadan_2025_end - pd.Timedelta(days=11)
 
-    total_2025_donors = len(donors_2025)
-    total_2026_donors = len(donors_2026)
-    potential_count = len(potential)
-    potential_pct = (potential_count / total_2025_donors * 100.0) if total_2025_donors else 0.0
+    cohort = tx[tx["Donateur_ID"].isin(potential)].copy()
 
-    section_header("1. Cohortoverzicht", "Hoe groot is de groep die in 2025 wel doneerde maar in 2026 nog niet?")
-    c1, c2, c3, c4 = st.columns(4)
+    ramadan = cohort[
+        (cohort["Datum"] >= ramadan_2025_start)
+        & (cohort["Datum"] <= ramadan_2025_end)
+    ]
+
+    last12 = cohort[
+        (cohort["Datum"] >= last12_start)
+        & (cohort["Datum"] <= ramadan_2025_end)
+    ]
+
+    section_header("1. Cohortoverzicht")
+
+    c1, c2, c3 = st.columns(3)
+
     with c1:
-        kpi_card("Donateurs 2025", i0(total_2025_donors), "unieke Donateur_ID in 2025")
+        kpi_card("Donateurs 2025", i0(len(donors_2025)))
+
     with c2:
-        kpi_card("Donateurs 2026", i0(total_2026_donors), "unieke Donateur_ID in 2026")
+        kpi_card("Donateurs 2026", i0(len(donors_2026)))
+
     with c3:
-        kpi_card("Potentiële donateurs", i0(potential_count), "wel in 2025, nog niet in 2026")
-    with c4:
-        kpi_card("% nog niet terug", pct(potential_pct), "aandeel van 2025-donateurs")
+        kpi_card("Potentiële donateurs", i0(len(potential)))
 
     st.markdown(
         "<div class='summary'>"
-        "Dit blok laat zien hoeveel donateurs uit 2025 in 2026 nog ontbreken. "
-        "Hoe hoger dit aantal, hoe groter de groep waarop nog actieve fondsenwerving mogelijk is."
+        "Dit zijn donateurs die in 2025 doneerden maar in 2026 nog niet."
         "</div>",
-        unsafe_allow_html=True,
+        unsafe_allow_html=True
     )
 
-    c5, c6 = st.columns(2)
-    with c5:
-        kpi_card("Bedrag Ramadan 2025", eur(pot_ramadan_2025["Bedrag"].sum()), "door deze cohort in Ramadan 2025")
-    with c6:
-        kpi_card("Bedrag laatste 12 dagen 2025", eur(pot_last12_2025["Bedrag"].sum()), "historisch potentieel laatste 12 dagen")
+    section_header("2. Historisch gedrag Ramadan 2025")
 
-    st.markdown(
-        "<div class='summary'>"
-        "Deze bedragen geven aan hoeveel geld de huidige nog-niet-teruggekeerde groep in 2025 opleverde. "
-        "Vooral het bedrag uit de laatste 12 dagen is relevant als benchmark voor resterend Ramadan-potentieel."
-        "</div>",
-        unsafe_allow_html=True,
-    )
-
-    section_header("2. Vergelijking tussen twee periodes", "Vergelijk donorinstroom en bedrag tussen twee door jou gekozen periodes")
-
-    compare_type = st.selectbox(
-        "Kies periode-niveau",
-        ["Dag", "Maand", "Jaar"],
-        key="forecast_compare_type",
-    )
-
-    available_years = sorted(work["Jaar"].dropna().astype(int).unique().tolist())
-
-    def select_period(prefix):
-        year = st.selectbox(
-            f"Jaar {prefix}",
-            available_years,
-            key=f"forecast_{prefix.lower()}_year",
-        )
-
-        if compare_type == "Jaar":
-            label = str(year)
-            subset = pot_df[pot_df["Jaar"] == year].copy()
-            return {"label": label, "subset": subset}
-
-        months = sorted(
-            work.loc[work["Jaar"] == year, "Maand_label"].dropna().astype(str).unique().tolist()
-        )
-
-        month = st.selectbox(
-            f"Maand {prefix}",
-            months,
-            key=f"forecast_{prefix.lower()}_month",
-        )
-
-        if compare_type == "Maand":
-            label = month
-            subset = pot_df[pot_df["Maand_label"] == month].copy()
-            return {"label": label, "subset": subset}
-
-        days = sorted(
-            work.loc[work["Maand_label"] == month, "Dag_label"].dropna().astype(str).unique().tolist()
-        )
-
-        day = st.selectbox(
-            f"Dag {prefix}",
-            days,
-            key=f"forecast_{prefix.lower()}_day",
-        )
-
-        label = day
-        subset = pot_df[pot_df["Dag_label"] == day].copy()
-        return {"label": label, "subset": subset}
-
-    col_a, col_b = st.columns(2)
-
-    with col_a:
-        period_a = select_period("A")
-
-    with col_b:
-        period_b = select_period("B")
-
-    df_a = period_a["subset"]
-    df_b = period_b["subset"]
-    label_a = period_a["label"]
-    label_b = period_b["label"]
-
-    a_donors = int(df_a["Donateur_ID"].nunique()) if len(df_a) else 0
-    b_donors = int(df_b["Donateur_ID"].nunique()) if len(df_b) else 0
-    a_amount = float(df_a["Bedrag"].sum()) if len(df_a) else 0.0
-    b_amount = float(df_b["Bedrag"].sum()) if len(df_b) else 0.0
-
-    v1, v2, v3, v4 = st.columns(4)
-    with v1:
-        kpi_card(f"Donateurs {label_a}", i0(a_donors), "unieke donateurs in periode A")
-    with v2:
-        kpi_card(f"Donateurs {label_b}", i0(b_donors), "unieke donateurs in periode B")
-    with v3:
-        kpi_card(f"Bedrag {label_a}", eur(a_amount), "opbrengst in periode A")
-    with v4:
-        kpi_card(f"Bedrag {label_b}", eur(b_amount), "opbrengst in periode B")
-
-    diff_donors = b_donors - a_donors
-    diff_amount = b_amount - a_amount
-
-    st.markdown(
-        "<div class='summary'>"
-        f"<strong>Periode A:</strong> {label_a}<br>"
-        f"<strong>Periode B:</strong> {label_b}<br>"
-        f"<strong>Verschil donateurs (B - A):</strong> {i0(diff_donors)}<br>"
-        f"<strong>Verschil bedrag (B - A):</strong> {eur(diff_amount)}<br>"
-        "Deze vergelijking laat zien of de tweede gekozen periode meer of minder donors en opbrengst genereerde dan de eerste."
-        "</div>",
-        unsafe_allow_html=True,
-    )
-
-    section_header("3. Historisch gedrag van potentiële donateurs", "Wanneer doneerde deze groep in Ramadan 2025?")
     daily = (
-        pot_ramadan_2025.assign(Datum_only=pot_ramadan_2025["Datum"].dt.normalize())
+        ramadan
+        .assign(Datum_only=ramadan["Datum"].dt.normalize())
         .groupby("Datum_only")
         .agg(
-            Donateurs=("Donateur_ID", "nunique"),
-            Bedrag=("Bedrag", "sum"),
+            Donateurs=("Donateur_ID","nunique"),
+            Bedrag=("Bedrag","sum")
         )
         .reset_index()
         .sort_values("Datum_only")
     )
 
-    if len(daily):
-        daily["Cumulatieve_donateurs"] = daily["Donateurs"].cumsum()
-        daily["Cumulatief_bedrag"] = daily["Bedrag"].cumsum()
+    daily["Datum"] = daily["Datum_only"].dt.strftime("%d-%m-%Y")
+    daily = daily.drop(columns=["Datum_only"])
 
-        g1, g2 = st.columns(2)
-
-        
-            
-
-            st.markdown(
-                "<div class='summary'>"
-                "Deze grafiek laat zien op welke dagen het geld binnenkwam van dezelfde cohort. "
-                "Zo zie je of de echte omzetpiek samenvalt met de donorinstroom of vooral op enkele zware dagen geconcentreerd was."
-                "</div>",
-                unsafe_allow_html=True,
-            )
-
-        dtable = daily.copy()
-        dtable["Datum"] = dtable["Datum_only"].dt.strftime("%d-%m-%Y")
-        dtable = dtable.drop(columns=["Datum_only"])
-        dtable = fmt_int_cols(dtable, ["Donateurs", "Cumulatieve_donateurs"])
-        dtable = fmt_money_cols(dtable, ["Bedrag", "Cumulatief_bedrag"])
-
-        st.dataframe(dtable, use_container_width=True, hide_index=True)
-        st.markdown(
-            "<div class='summary'>"
-            "De tabel bundelt per dag het aantal unieke donateurs en het opgehaalde bedrag. "
-            "De cumulatieve kolommen laten zien hoe snel de cohort zich in Ramadan 2025 opbouwde."
-            "</div>",
-            unsafe_allow_html=True,
-        )
-    else:
-        st.info("Geen historische Ramadan 2025 transacties gevonden voor de potentiële cohort.")
-
-    section_header("4. Forecast resterende potentie", "Hoeveel van deze cohort doneerde historisch pas ná een gekozen vergelijkingsdag?")
-    forecast_dates = pd.date_range(ramadan_2025_start, ramadan_2025_end, freq="D")
-    forecast_options = [d.strftime("%d-%m-%Y") for d in forecast_dates]
-    default_index = min(18, len(forecast_options) - 1) if forecast_options else 0
-    selected_cutoff_str = st.selectbox(
-        "Vergelijkingsdag binnen Ramadan 2025",
-        forecast_options,
-        index=default_index if forecast_options else None,
-        key="forecast_cutoff_day",
-    )
-
-    if forecast_options:
-        cutoff = pd.to_datetime(selected_cutoff_str, format="%d-%m-%Y").replace(year=2025)
-
-        before_cutoff = pot_ramadan_2025[pot_ramadan_2025["Datum"] <= cutoff]
-        after_cutoff = pot_ramadan_2025[pot_ramadan_2025["Datum"] > cutoff]
-
-        before_donors = int(before_cutoff["Donateur_ID"].nunique())
-        after_donors = int(after_cutoff["Donateur_ID"].nunique())
-        before_amount = float(before_cutoff["Bedrag"].sum())
-        after_amount = float(after_cutoff["Bedrag"].sum())
-
-        f1, f2, f3, f4 = st.columns(4)
-        with f1:
-            kpi_card("Donateurs t/m gekozen dag", i0(before_donors), "historisch in Ramadan 2025")
-        with f2:
-            kpi_card("Donateurs ná gekozen dag", i0(after_donors), "potentieel later gedrag")
-        with f3:
-            kpi_card("Bedrag t/m gekozen dag", eur(before_amount), "historisch in Ramadan 2025")
-        with f4:
-            kpi_card("Bedrag ná gekozen dag", eur(after_amount), "historisch potentieel na deze dag")
-
-        st.markdown(
-            "<div class='summary'>"
-            "Deze forecast is bewust eenvoudig en uitlegbaar: hij kijkt naar dezelfde nog-niet-teruggekeerde cohort "
-            "en vraagt hoeveel daarvan in 2025 pas ná de gekozen dag doneerde. "
-            "Dat aantal en bedrag vormen een directe historische benchmark voor wat er later in de campagne nog zou kunnen terugkomen."
-            "</div>",
-            unsafe_allow_html=True,
-        )
-
-    section_header("5. Teruggekomen donateurs", "Hoeveel oude donateurs keerden in een gekozen periode terug en wat doneerden zij sindsdien?")
-    comeback_type = st.selectbox(
-        "Kies analyseperiode voor comeback",
-        ["Dag", "Maand", "Jaar"],
-        key="forecast_comeback_type",
-    )
-
-    if comeback_type == "Dag":
-        comeback_options = sorted(work["Dag_label"].dropna().unique().tolist())
-        comeback_col = "Dag_label"
-        selected_comeback = st.selectbox("Kies dag", comeback_options, key="forecast_comeback_day")
-        period_mask = work[comeback_col] == selected_comeback
-    elif comeback_type == "Maand":
-        comeback_options = sorted(work["Maand_label"].dropna().unique().tolist())
-        comeback_col = "Maand_label"
-        selected_comeback = st.selectbox("Kies maand", comeback_options, key="forecast_comeback_month")
-        period_mask = work[comeback_col] == selected_comeback
-    else:
-        comeback_options = [str(x) for x in sorted(work["Jaar"].dropna().astype(int).unique().tolist())]
-        selected_comeback = st.selectbox("Kies jaar", comeback_options, key="forecast_comeback_year")
-        period_mask = work["Jaar"] == int(selected_comeback)
-
-    period_df = work[period_mask].copy()
-    period_donors = set(period_df["Donateur_ID"])
-
-    if comeback_type == "Dag":
-        selected_dt = pd.to_datetime(selected_comeback, format="%d-%m-%Y", errors="coerce")
-        history_df = work[work["Datum"] < selected_dt].copy() if pd.notna(selected_dt) else work.iloc[0:0].copy()
-    elif comeback_type == "Maand":
-        selected_dt = pd.to_datetime(selected_comeback + "-01", format="%Y-%m-%d", errors="coerce")
-        history_df = work[work["Datum"] < selected_dt].copy() if pd.notna(selected_dt) else work.iloc[0:0].copy()
-    else:
-        history_df = work[work["Jaar"] < int(selected_comeback)].copy()
-
-    history_donors = set(history_df["Donateur_ID"])
-    comeback_donors = period_donors & history_donors
-
-    comeback_first = (
-        period_df[period_df["Donateur_ID"].isin(comeback_donors)]
-        .groupby("Donateur_ID", as_index=False)["Datum"]
-        .min()
-        .rename(columns={"Datum": "Eerste_comeback"})
-    )
-
-    merged = work.merge(comeback_first, on="Donateur_ID", how="inner")
-    merged = merged[merged["Datum"] >= merged["Eerste_comeback"]].copy()
-
-    comeback_amount = float(merged["Bedrag"].sum()) if len(merged) else 0.0
-    comeback_tx = int(len(merged))
-
-    r1, r2, r3 = st.columns(3)
-    with r1:
-        kpi_card("Teruggekomen donateurs", i0(len(comeback_donors)), "hadden al eerder gedoneerd")
-    with r2:
-        kpi_card("Donaties sinds comeback", i0(comeback_tx), "aantal transacties vanaf comeback")
-    with r3:
-        kpi_card("Bedrag sinds comeback", eur(comeback_amount), "opbrengst vanaf eerste comeback")
+    st.dataframe(daily, use_container_width=True, hide_index=True)
 
     st.markdown(
         "<div class='summary'>"
-        "Deze analyse kijkt naar donateurs die al vóór de gekozen periode bestonden en in de gekozen periode opnieuw actief werden. "
-        "Daarna telt het model door hoeveel zij sinds die comeback samen hebben opgebracht."
+        "Deze tabel toont wanneer de huidige potentiële donateurs in Ramadan 2025 doneerden."
         "</div>",
-        unsafe_allow_html=True,
+        unsafe_allow_html=True
     )
 
-    if len(merged):
-        comeback_table = (
-            merged.groupby(["Donateur_ID", "Eerste_comeback"], as_index=False)
-            .agg(
-                Aantal_donaties=("Bedrag", "size"),
-                Totaal_bedrag=("Bedrag", "sum"),
-            )
-            .sort_values("Totaal_bedrag", ascending=False)
-        )
-        comeback_table["Eerste_comeback"] = pd.to_datetime(comeback_table["Eerste_comeback"]).dt.strftime("%d-%m-%Y")
-        comeback_table = fmt_int_cols(comeback_table, ["Aantal_donaties"])
-        comeback_table = fmt_money_cols(comeback_table, ["Totaal_bedrag"])
-        st.dataframe(comeback_table, use_container_width=True, hide_index=True)
+    section_header("3. Laatste 12 dagen Ramadan 2025")
 
-        st.markdown(
-            "<div class='summary'>"
-            "De tabel laat per teruggekomen donateur zien wanneer de comeback begon, hoeveel donaties daarna volgden "
-            "en welk totaalbedrag die comeback tot nu toe opleverde."
-            "</div>",
-            unsafe_allow_html=True,
+    daily12 = (
+        last12
+        .assign(Datum_only=last12["Datum"].dt.normalize())
+        .groupby("Datum_only")
+        .agg(
+            Donateurs=("Donateur_ID","nunique"),
+            Bedrag=("Bedrag","sum")
         )
+        .reset_index()
+        .sort_values("Datum_only")
+    )
+
+    daily12["Datum"] = daily12["Datum_only"].dt.strftime("%d-%m-%Y")
+    daily12 = daily12.drop(columns=["Datum_only"])
+
+    st.dataframe(daily12, use_container_width=True, hide_index=True)
+
+    st.markdown(
+        "<div class='summary'>"
+        "Dit toont hoeveel van deze donateurs pas in de laatste 12 dagen doneerden."
+        "</div>",
+        unsafe_allow_html=True
+    )
+
+    section_header("4. Vergelijking tussen twee periodes")
+
+    years = sorted(tx["Jaar"].unique())
+
+    colA, colB = st.columns(2)
+
+    with colA:
+        yearA = st.selectbox("Jaar A", years)
+        monthA = st.selectbox("Maand A", sorted(tx.loc[tx["Jaar"]==yearA,"Datum"].dt.month.unique()))
+        dayA = st.selectbox("Dag A", sorted(tx.loc[(tx["Jaar"]==yearA)&(tx["Datum"].dt.month==monthA),"Datum"].dt.day.unique()))
+
+    with colB:
+        yearB = st.selectbox("Jaar B", years)
+        monthB = st.selectbox("Maand B", sorted(tx.loc[tx["Jaar"]==yearB,"Datum"].dt.month.unique()))
+        dayB = st.selectbox("Dag B", sorted(tx.loc[(tx["Jaar"]==yearB)&(tx["Datum"].dt.month==monthB),"Datum"].dt.day.unique()))
+
+    dateA = pd.Timestamp(yearA,monthA,dayA)
+    dateB = pd.Timestamp(yearB,monthB,dayB)
+
+    dfA = cohort[cohort["Datum"] == dateA]
+    dfB = cohort[cohort["Datum"] == dateB]
+
+    c1,c2,c3,c4 = st.columns(4)
+
+    with c1:
+        kpi_card("Donateurs A", i0(dfA["Donateur_ID"].nunique()))
+
+    with c2:
+        kpi_card("Donateurs B", i0(dfB["Donateur_ID"].nunique()))
+
+    with c3:
+        kpi_card("Bedrag A", eur(dfA["Bedrag"].sum()))
+
+    with c4:
+        kpi_card("Bedrag B", eur(dfB["Bedrag"].sum()))
+
+    st.markdown(
+        "<div class='summary'>"
+        "Hier wordt een specifieke dag vergeleken tussen twee periodes."
+        "</div>",
+        unsafe_allow_html=True
+    )
 
 def main():
     inject_css()
