@@ -1181,22 +1181,51 @@ def render_forecast_tab(data):
         & (cohort["Datum"] <= ramadan_2025_end)
     ]
 
-    section_header("1. Cohortoverzicht")
+    section_header(
+        "1. Donateurbasis vergelijking",
+        "Vergelijking tussen donateurs in 2025 en 2026"
+    )
 
-    c1, c2, c3 = st.columns(3)
+    return_rate = (len(donors_2026) / len(donors_2025) * 100) if len(donors_2025) else 0.0
+
+    c1, c2, c3, c4 = st.columns(4)
 
     with c1:
-        kpi_card("Donateurs 2025", i0(len(donors_2025)))
+        kpi_card(
+            "Donateurs 2025",
+            i0(len(donors_2025)),
+            "unieke donateurs met minimaal één donatie in 2025"
+        )
 
     with c2:
-        kpi_card("Donateurs 2026", i0(len(donors_2026)))
+        kpi_card(
+            "Donateurs 2026",
+            i0(len(donors_2026)),
+            "unieke donateurs met minimaal één donatie in 2026 (t/m peildatum)"
+        )
 
     with c3:
-        kpi_card("Potentiële donateurs", i0(len(potential)))
+        kpi_card(
+            "Nog niet terug uit 2025",
+            i0(len(potential)),
+            "donateurs die in 2025 doneerden maar in 2026 nog niet"
+        )
+
+    with c4:
+        kpi_card(
+            "Terugkeerpercentage",
+            f"{return_rate:.1f}%",
+            "aandeel van 2025-donateurs dat al terugkeerde in 2026"
+        )
 
     st.markdown(
         "<div class='summary'>"
-        "Dit zijn donateurs die in 2025 doneerden maar in 2026 nog niet."
+        "<strong>Interpretatie:</strong><br>"
+        "Donateurs 2025 = unieke donateurs die in 2025 minimaal één donatie deden.<br>"
+        "Donateurs 2026 = unieke donateurs die in 2026 tot de peildatum hebben gedoneerd.<br>"
+        "Nog niet terug uit 2025 = donateurs uit 2025 die in 2026 nog niet zijn teruggekeerd.<br>"
+        "Terugkeerpercentage = aandeel van de 2025-donateurs dat inmiddels weer heeft gedoneerd.<br><br>"
+        "Deze laatste groep vormt het resterende fondsenwervingspotentieel."
         "</div>",
         unsafe_allow_html=True
     )
