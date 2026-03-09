@@ -587,28 +587,68 @@ def render_dashboard_tab(data):
 
     if len(new_returning) and "Nieuwe_donateurs" in new_returning.columns and "Terugkerende_donateurs" in new_returning.columns:
         with g4:
-            fig, ax = plt.subplots(figsize=(7.4, 4.3))
+            fig, ax = plt.subplots(figsize=(8.6, 5.2))
             years = new_returning["Jaar"].astype(str).tolist()
             nieuw = pd.to_numeric(new_returning["Nieuwe_donateurs"], errors="coerce").fillna(0).tolist()
             terug = pd.to_numeric(new_returning["Terugkerende_donateurs"], errors="coerce").fillna(0).tolist()
             x = list(range(len(years)))
-            width = 0.34
-            b1 = ax.bar([i - width / 2 for i in x], nieuw, width=width, label="Nieuw", color="#1F5D8B")
-            b2 = ax.bar([i + width / 2 for i in x], terug, width=width, label="Terugkerend", color="#1F5D8B")
+            width = 0.30
+
+            b1 = ax.bar(
+                [i - width / 2 for i in x],
+                nieuw,
+                width=width,
+                label="Nieuw",
+                color="#1F5D8B"
+            )
+            b2 = ax.bar(
+                [i + width / 2 for i in x],
+                terug,
+                width=width,
+                label="Terugkerend",
+                color="#5B8DB8"
+            )
+
             ymax = max(nieuw + terug) if (nieuw + terug) else 0
-            offset = (0.02 * ymax) if ymax > 0 else 0.2
+            offset = (0.035 * ymax) if ymax > 0 else 0.2
+            ax.set_ylim(0, ymax * 1.18 if ymax > 0 else 1)
+
             for rect, val in zip(b1, nieuw):
-                ax.text(rect.get_x() + rect.get_width() / 2, rect.get_height() + offset, i0(val), ha="center", va="bottom", fontsize=9, fontweight="bold", color="#0F2747")
+                ax.text(
+                    rect.get_x() + rect.get_width() / 2,
+                    rect.get_height() + offset,
+                    i0(val),
+                    ha="center",
+                    va="bottom",
+                    fontsize=10,
+                    fontweight="bold",
+                    color="#0F2747"
+                )
+
             for rect, val in zip(b2, terug):
-                ax.text(rect.get_x() + rect.get_width() / 2, rect.get_height() + offset, i0(val), ha="center", va="bottom", fontsize=9, fontweight="bold", color="#0F2747")
+                ax.text(
+                    rect.get_x() + rect.get_width() / 2,
+                    rect.get_height() + offset,
+                    i0(val),
+                    ha="center",
+                    va="bottom",
+                    fontsize=10,
+                    fontweight="bold",
+                    color="#0F2747"
+                )
+
             ax.set_xticks(x)
             ax.set_xticklabels(years)
-            ax.set_title("Nieuwe vs terugkerende donateurs", fontsize=14, fontweight="bold", pad=12, color="#0F2747")
+            ax.set_title("Nieuwe vs terugkerende donateurs", fontsize=14, fontweight="bold", pad=14, color="#0F2747")
             ax.grid(axis="y", alpha=0.15)
             ax.set_axisbelow(True)
+            ax.tick_params(axis="x", labelsize=10)
+            ax.tick_params(axis="y", labelsize=10)
             ax.legend(frameon=False, ncol=2, loc="upper left")
+
             for spine in ["top", "right"]:
                 ax.spines[spine].set_visible(False)
+
             fig.tight_layout()
             st.pyplot(fig, use_container_width=True)
 
