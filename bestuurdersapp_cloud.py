@@ -1337,65 +1337,8 @@ def render_forecast_tab(data):
 
         g1, g2 = st.columns(2)
 
-        with g1:
-            fig, ax = plt.subplots(figsize=(7.6, 4.8))
-            labels = daily["Datum_only"].dt.strftime("%d-%m").tolist()
-            vals = daily["Donateurs"].astype(float).tolist()
-            bars = ax.bar(labels, vals, color="#1F5D8B")
-            ymax = max(vals) if vals else 0
-            for rect, val in zip(bars, vals):
-                ax.text(
-                    rect.get_x() + rect.get_width() / 2,
-                    rect.get_height() + ((0.02 * ymax) if ymax > 0 else 0.2),
-                    i0(val),
-                    ha="center",
-                    va="bottom",
-                    fontsize=8,
-                    fontweight="bold",
-                    color="#0F2747",
-                )
-            ax.set_title("Unieke donateurs per dag • Ramadan 2025", fontsize=14, fontweight="bold", pad=12, color="#0F2747")
-            ax.grid(axis="y", alpha=0.15)
-            ax.set_axisbelow(True)
-            ax.tick_params(axis="x", rotation=45, labelsize=8)
-            for spine in ["top", "right"]:
-                ax.spines[spine].set_visible(False)
-            fig.tight_layout()
-            st.pyplot(fig, use_container_width=True)
-
-            st.markdown(
-                "<div class='summary'>"
-                "Deze grafiek laat zien op welke dagen in Ramadan 2025 de nu nog ontbrekende donateurs daadwerkelijk gaven. "
-                "Zo zie je of deze groep historisch vooral vroeg, gelijkmatig of juist pas laat in Ramadan doneert."
-                "</div>",
-                unsafe_allow_html=True,
-            )
-
-        with g2:
-            fig, ax = plt.subplots(figsize=(7.6, 4.8))
-            labels = daily["Datum_only"].dt.strftime("%d-%m").tolist()
-            vals = daily["Bedrag"].astype(float).tolist()
-            bars = ax.bar(labels, vals, color="#1F5D8B")
-            ymax = max(vals) if vals else 0
-            for rect, val in zip(bars, vals):
-                ax.text(
-                    rect.get_x() + rect.get_width() / 2,
-                    rect.get_height() + ((0.02 * ymax) if ymax > 0 else 0.2),
-                    eur(val),
-                    ha="center",
-                    va="bottom",
-                    fontsize=8,
-                    fontweight="bold",
-                    color="#0F2747",
-                )
-            ax.set_title("Bedrag per dag • Ramadan 2025", fontsize=14, fontweight="bold", pad=12, color="#0F2747")
-            ax.grid(axis="y", alpha=0.15)
-            ax.set_axisbelow(True)
-            ax.tick_params(axis="x", rotation=45, labelsize=8)
-            for spine in ["top", "right"]:
-                ax.spines[spine].set_visible(False)
-            fig.tight_layout()
-            st.pyplot(fig, use_container_width=True)
+        
+            
 
             st.markdown(
                 "<div class='summary'>"
