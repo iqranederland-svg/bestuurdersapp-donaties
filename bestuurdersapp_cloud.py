@@ -593,8 +593,8 @@ def render_dashboard_tab(data):
             terug = pd.to_numeric(new_returning["Terugkerende_donateurs"], errors="coerce").fillna(0).tolist()
             x = list(range(len(years)))
             width = 0.34
-            b1 = ax.bar([i - width / 2 for i in x], nieuw, width=width, label="Nieuw", color="#F59E0B")
-            b2 = ax.bar([i + width / 2 for i in x], terug, width=width, label="Terugkerend", color="#10B981")
+            b1 = ax.bar([i - width / 2 for i in x], nieuw, width=width, label="Nieuw", color="#1F5D8B")
+            b2 = ax.bar([i + width / 2 for i in x], terug, width=width, label="Terugkerend", color="#1F5D8B")
             ymax = max(nieuw + terug) if (nieuw + terug) else 0
             offset = (0.02 * ymax) if ymax > 0 else 0.2
             for rect, val in zip(b1, nieuw):
@@ -630,7 +630,7 @@ def render_dashboard_tab(data):
             fig, ax = plt.subplots(figsize=(7.4, 4.3))
             seg = pareto["Segment"].astype(str).tolist()
             vals = pd.to_numeric(pareto["Bedrag"], errors="coerce").fillna(0).tolist()
-            bars = ax.bar(seg, vals, color="#8B5CF6")
+            bars = ax.bar(seg, vals, color="#1F5D8B")
             ymax = max(vals) if vals else 0
             for rect, val in zip(bars, vals):
                 ax.text(rect.get_x() + rect.get_width() / 2, rect.get_height() + ((0.02 * ymax) if ymax > 0 else 0.2), eur(val), ha="center", va="bottom", fontsize=9, fontweight="bold", color="#0F2747")
