@@ -1255,39 +1255,113 @@ def render_forecast_tab(data):
 
     section_header("4. Vergelijking tussen twee periodes")
 
-    years = sorted(tx["Jaar"].unique())
+    st.markdown(
+        "<div class='summary'>"
+        "Kies hieronder een start- en einddatum. "
+        "De analyse kijkt vervolgens hoeveel donateurs uit 2025, die vóór de startdatum in 2026 nog niet waren teruggekomen, "
+        "tussen deze twee datums alsnog zijn teruggekeerd en hoeveel zij hebben gedoneerd."
+        "</div>",
+        unsafe_allow_html=True
+    )
 
-    colA, colB = st.columns(2)
+    compare_df = tx.copy()
+    compare_df["Datum_only"] = compare_df["Datum"].dt.normalize()
 
-    with colA:
-        yearA = st.selectbox("Jaar A", years)
-        monthA = st.selectbox("Maand A", sorted(tx.loc[tx["Jaar"]==yearA,"Datum"].dt.month.unique()))
-        dayA = st.selectbox("Dag A", sorted(tx.loc[(tx["Jaar"]==yearA)&(tx["Datum"].dt.month==monthA),"Datum"].dt.day.unique()))
+    available_dates = sorted(compare_df.loc[compare_df["Jaar"] == 2026, "Datum_only"].dropna().unique().tolist())
+    available_dates = [pd.Timestamp(d) for d in available_dates]
 
-    with colB:
-        yearB = st.selectbox("Jaar B", years)
-        monthB = st.selectbox("Maand B", sorted(tx.loc[tx["Jaar"]==yearB,"Datum"].dt.month.unique()))
-        dayB = st.selectbox("Dag B", sorted(tx.loc[(tx["Jaar"]==yearB)&(tx["Datum"].dt.month==monthB),"Datum"].dt.day.unique()))
+    if not available_dates:
+        st.info("Geen datums beschikbaar in 2026 voor vergelijking.")
+    else:
+        colA, colB = st.columns(2)
 
-    dateA = pd.Timestamp(yearA,monthA,dayA)
-    dateB = pd.Timestamp(yearB,monthB,dayB)
+        with colA:
+            start_date = st.selectbox(
+                "Startdatum",
+                available_dates,
+                index=0,
+                format_func=lambda x: x.strftime("%d-%m-%Y"),
+                key="forecast_compare_start_date",
+            )
 
-    dfA = cohort[cohort["Datum"] == dateA]
-    dfB = cohort[cohort["Datum"] == dateB]
+        with colB:
+            default_end = min(len(available_dates) - 1, max(0, available_dates.index(start_date) + 7)) if start_date in available_dates else 0
+            end_date = st.selectbox(
+                "Einddatum",
+                [d for d in available_dates if d >= start_date],
+                index=min(default_end, len([d for d in available_dates if d >= start_date]) - 1),
+                format_func=lambda x: x.strftime("%d-%m-%Y"),
+                key="forecast_compare_end_date",
+            )
 
-    c1,c2,c3,c4 = st.columns(4)
+        donors_before_start_2026 = set(
+            tx.loc[
+                (tx["Jaar"] == 2026) &
+                (tx["Datum"] < start_date),
+                "Donateur_ID"
+            ]
+        )
 
-    with c1:
-        kpi_card("Donateurs A", i0(dfA["Donateur_ID"].nunique()))
+        missing_at_start = donors_2025 - donors_before_start_2026
 
-    with c2:
-        kpi_card("Donateurs B", i0(dfB["Donateur_ID"].nunique()))
+        returned_in_window = tx[
+            (tx["Donateur_ID"].isin(missing_at_start)) &
+            (tx["Datum"] >= start_date) &
+            (tx["Datum"] <= end_date)
+        ].copy()
 
-    with c3:
-        kpi_card("Bedrag A", eur(dfA["Bedrag"].sum()))
+        returned_donors = int(returned_in_window["Donateur_ID"].nunique())
+        returned_amount = float(returned_in_window["Bedrag"].sum())
+        returned_tx = int(len(returned_in_window))
 
-    with c4:
-        kpi_card("Bedrag B", eur(dfB["Bedrag"].sum()))
+        c1, c2, c3, c4 = st.columns(4)
+
+        with c1:
+            kpi_card("Nog niet terug op startdatum", i0(len(missing_at_start)), "2025-donateurs die vóór startdatum niet terugkeerden in 2026")
+
+        with c2:
+            kpi_card("Teruggekeerd in gekozen periode", i0(returned_donors), f"{start_date.strftime('%d-%m-%Y')} t/m {end_date.strftime('%d-%m-%Y')}")
+
+        with c3:
+            kpi_card("Bedrag in gekozen periode", eur(returned_amount), "totaal van teruggekeerde donateurs")
+
+        with c4:
+            kpi_card("Aantal transacties", i0(returned_tx), "alle transacties van teruggekeerde donateurs in deze periode")
+
+        st.markdown(
+            "<div class='summary'>"
+            f"<strong>Interpretatie:</strong> op {start_date.strftime('%d-%m-%Y')} waren er <strong>{i0(len(missing_at_start))}</strong> donateurs uit 2025 nog niet terug in 2026. "
+            f"Tussen {start_date.strftime('%d-%m-%Y')} en {end_date.strftime('%d-%m-%Y')} keerden daarvan <strong>{i0(returned_donors)}</strong> terug, "
+            f"goed voor <strong>{eur(returned_amount)}</strong> uit <strong>{i0(returned_tx)}</strong> transacties."
+            "</div>",
+            unsafe_allow_html=True
+        )
+
+        if len(returned_in_window):
+            detail = (
+                returned_in_window.groupby("Donateur_ID", as_index=False)
+                .agg(
+                    Eerste_terugkeer=("Datum", "min"),
+                    Aantal_transacties=("Bedrag", "size"),
+                    Totaal_bedrag=("Bedrag", "sum"),
+                )
+                .sort_values("Totaal_bedrag", ascending=False)
+            )
+            detail["Eerste_terugkeer"] = pd.to_datetime(detail["Eerste_terugkeer"]).dt.strftime("%d-%m-%Y")
+            detail = fmt_int_cols(detail, ["Aantal_transacties"])
+            detail = fmt_money_cols(detail, ["Totaal_bedrag"])
+
+            st.dataframe(detail, use_container_width=True, hide_index=True)
+
+            st.markdown(
+                "<div class='summary'>"
+                "De tabel toont welke eerder verdwenen donateurs in deze gekozen periode terugkwamen, "
+                "wanneer hun comeback begon en welk bedrag zij in deze periode samen opleverden."
+                "</div>",
+                unsafe_allow_html=True
+            )
+        else:
+            st.info("Geen teruggekeerde donateurs gevonden binnen deze gekozen periode.")
 
     st.markdown(
         "<div class='summary'>"
