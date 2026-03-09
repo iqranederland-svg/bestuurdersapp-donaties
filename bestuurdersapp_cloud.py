@@ -1229,33 +1229,6 @@ def render_forecast_tab(data):
         "</div>",
         unsafe_allow_html=True
     )
-
-    section_header("2. Historisch gedrag Ramadan 2025")
-
-    daily = (
-        ramadan
-        .assign(Datum_only=ramadan["Datum"].dt.normalize())
-        .groupby("Datum_only")
-        .agg(
-            Donateurs=("Donateur_ID","nunique"),
-            Bedrag=("Bedrag","sum")
-        )
-        .reset_index()
-        .sort_values("Datum_only")
-    )
-
-    daily["Datum"] = daily["Datum_only"].dt.strftime("%d-%m-%Y")
-    daily = daily.drop(columns=["Datum_only"])
-
-    st.dataframe(daily, use_container_width=True, hide_index=True)
-
-    st.markdown(
-        "<div class='summary'>"
-        "Deze tabel toont wanneer de huidige potentiële donateurs in Ramadan 2025 doneerden."
-        "</div>",
-        unsafe_allow_html=True
-    )
-
     section_header("3. Laatste 12 dagen Ramadan 2025")
 
     daily12 = (
