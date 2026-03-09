@@ -4,52 +4,52 @@
   "start_date": "2023-01-01",
   "end_date": "2026-03-09",
   "status": "voorlopig",
-  "rows": 26686,
+  "rows": 26893,
   "totals": {
-    "inkomsten": 763972.9099999999,
+    "inkomsten": 772383.7999999999,
     "uitgaven": 18317.780000000006,
-    "netto_resultaat": 745655.1299999999,
+    "netto_resultaat": 754066.0199999999,
     "contant_kas": 150000.0,
-    "netto_resultaat_incl_kas": 895655.1299999999,
+    "netto_resultaat_incl_kas": 904066.0199999999,
     "periodieke_donaties": 121913.07999999999,
-    "eenmalige_donaties": 642059.83,
+    "eenmalige_donaties": 650470.72,
     "overige_inkomsten": 0.0,
-    "totale_donaties": 763972.9099999999
+    "totale_donaties": 772383.7999999999
   },
   "donor_metrics": {
-    "unieke_donors": 5142,
-    "actieve_donors_huidig_jaar": 1215,
-    "nieuwe_donors_huidig_jaar": 577,
-    "structureel_uitgestroomd": 1676,
-    "niet_gedoneerd_huidig_jaar": 3927,
-    "laatste_donatie_vorig_jaar": 2251,
-    "totaal_transacties": 16003,
+    "unieke_donors": 5191,
+    "actieve_donors_huidig_jaar": 1291,
+    "nieuwe_donors_huidig_jaar": 626,
+    "structureel_uitgestroomd": 1671,
+    "niet_gedoneerd_huidig_jaar": 3900,
+    "laatste_donatie_vorig_jaar": 2229,
+    "totaal_transacties": 16200,
     "huidig_jaar": 2026
   },
   "exit_metrics": {
-    "structureel_uitgestroomd": 1676,
-    "niet_gedoneerd_huidig_jaar": 3927,
-    "laatste_donatie_vorig_jaar": 2251,
+    "structureel_uitgestroomd": 1671,
+    "niet_gedoneerd_huidig_jaar": 3900,
+    "laatste_donatie_vorig_jaar": 2229,
     "huidig_jaar": 2026
   },
   "exit_summary": [
     {
       "Laatste actieve jaar": 2023,
-      "Aantal_donateurs": 856,
-      "Totaal_bedrag_van_deze_groep": 27504.01,
-      "Totaal_transacties_van_deze_groep": 1094
+      "Aantal_donateurs": 855,
+      "Totaal_bedrag_van_deze_groep": 27494.01,
+      "Totaal_transacties_van_deze_groep": 1093
     },
     {
       "Laatste actieve jaar": 2024,
-      "Aantal_donateurs": 820,
-      "Totaal_bedrag_van_deze_groep": 49967.94,
-      "Totaal_transacties_van_deze_groep": 1446
+      "Aantal_donateurs": 816,
+      "Totaal_bedrag_van_deze_groep": 47080.92,
+      "Totaal_transacties_van_deze_groep": 1428
     },
     {
       "Laatste actieve jaar": 2025,
-      "Aantal_donateurs": 2251,
-      "Totaal_bedrag_van_deze_groep": 293576.95,
-      "Totaal_transacties_van_deze_groep": 6682
+      "Aantal_donateurs": 2229,
+      "Totaal_bedrag_van_deze_groep": 289223.44,
+      "Totaal_transacties_van_deze_groep": 6579
     }
   ],
   "yearly": [
@@ -82,11 +82,11 @@
     },
     {
       "Jaar": 2026,
-      "Inkomsten": 111440.88999999998,
+      "Inkomsten": 119851.78,
       "Uitgaven": 197.52,
-      "Netto resultaat": 111243.36999999998,
+      "Netto resultaat": 119654.26,
       "Periodieke donaties": 11578.92,
-      "Eenmalige donaties": 99861.97,
+      "Eenmalige donaties": 108272.86,
       "Overige inkomsten": 0.0
     }
   ],
