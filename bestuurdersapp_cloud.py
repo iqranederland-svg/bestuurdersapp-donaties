@@ -1273,26 +1273,41 @@ def render_forecast_tab(data):
     if not available_dates:
         st.info("Geen datums beschikbaar in 2026 voor vergelijking.")
     else:
+        def pick_date(prefix, allowed_dates, min_date=None):
+            dates = [pd.Timestamp(d) for d in allowed_dates]
+            if min_date is not None:
+                dates = [d for d in dates if d >= min_date]
+
+            years = sorted({d.year for d in dates})
+            year = st.selectbox(
+                f"Jaar {prefix}",
+                years,
+                key=f"forecast_{prefix.lower()}_year",
+            )
+
+            months = sorted({d.month for d in dates if d.year == year})
+            month = st.selectbox(
+                f"Maand {prefix}",
+                months,
+                key=f"forecast_{prefix.lower()}_month",
+            )
+
+            days = sorted({d.day for d in dates if d.year == year and d.month == month})
+            day = st.selectbox(
+                f"Dag {prefix}",
+                days,
+                key=f"forecast_{prefix.lower()}_day",
+            )
+
+            return pd.Timestamp(year=year, month=month, day=day)
+
         colA, colB = st.columns(2)
 
         with colA:
-            start_date = st.selectbox(
-                "Startdatum",
-                available_dates,
-                index=0,
-                format_func=lambda x: x.strftime("%d-%m-%Y"),
-                key="forecast_compare_start_date",
-            )
+            start_date = pick_date("start", available_dates)
 
         with colB:
-            default_end = min(len(available_dates) - 1, max(0, available_dates.index(start_date) + 7)) if start_date in available_dates else 0
-            end_date = st.selectbox(
-                "Einddatum",
-                [d for d in available_dates if d >= start_date],
-                index=min(default_end, len([d for d in available_dates if d >= start_date]) - 1),
-                format_func=lambda x: x.strftime("%d-%m-%Y"),
-                key="forecast_compare_end_date",
-            )
+            end_date = pick_date("eind", available_dates, min_date=start_date)
 
         donors_before_start_2026 = set(
             tx.loc[
