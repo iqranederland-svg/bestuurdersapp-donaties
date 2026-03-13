@@ -8,10 +8,10 @@
   "start_date": "2023-01-01",
   "end_date": "2026-03-13",
   "status": "voorlopig",
-  "contant_kas": 133400.0,
-  "xlsx_filename": "donateur_intelligence_v5_20260313_231443.xlsx",
-  "pdf_filename": "bestuursrapport_donaties_v5_20260313_231443.pdf",
+  "contant_kas": 138000.0,
+  "xlsx_filename": "donateur_intelligence_v5_20260313_231817.xlsx",
+  "pdf_filename": "bestuursrapport_donaties_v5_20260313_231817.pdf",
   "archive_xlsx": "archive/2023_01_tot_2026_03/donateur_intelligence_2023_01_tot_2026_03.xlsx",
   "archive_pdf": "archive/2023_01_tot_2026_03/bestuursrapport_donaties_2023_01_tot_2026_03.pdf",
-  "generated_at": "2026-03-13T23:14:45"
+  "generated_at": "2026-03-13T23:18:19"
 }
