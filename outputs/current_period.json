@@ -1,17 +1,17 @@
 {
   "period_key": "2023_01_tot_2026_03",
-  "period_label": "januari 2023 t/m 13-03-2026",
+  "period_label": "januari 2023 t/m 15-03-2026",
   "from_year": 2023,
   "from_month": 1,
   "to_year": 2026,
   "to_month": 3,
   "start_date": "2023-01-01",
-  "end_date": "2026-03-13",
+  "end_date": "2026-03-15",
   "status": "voorlopig",
-  "contant_kas": 138000.0,
-  "xlsx_filename": "donateur_intelligence_v5_20260313_231817.xlsx",
-  "pdf_filename": "bestuursrapport_donaties_v5_20260313_231817.pdf",
+  "contant_kas": 140000.0,
+  "xlsx_filename": "donateur_intelligence_v5_20260315_155510.xlsx",
+  "pdf_filename": "bestuursrapport_donaties_v5_20260315_155510.pdf",
   "archive_xlsx": "archive/2023_01_tot_2026_03/donateur_intelligence_2023_01_tot_2026_03.xlsx",
   "archive_pdf": "archive/2023_01_tot_2026_03/bestuursrapport_donaties_2023_01_tot_2026_03.pdf",
-  "generated_at": "2026-03-13T23:18:19"
+  "generated_at": "2026-03-15T15:55:12"
 }
